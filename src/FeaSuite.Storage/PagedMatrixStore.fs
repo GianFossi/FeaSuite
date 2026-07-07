@@ -118,7 +118,7 @@ type PagedMatrixStore(filePath: string, rows: int, cols: int, ?writeBufferSize: 
             self.Flush()
             stream.Dispose()
 
-    /// Open an existing PagedMatrixStore file (read-only scan).
+    /// Open an existing PagedMatrixStore file and return all entries eagerly.
     static member OpenReadOnly(filePath: string) : (int * int * int64 * (int * int * float) seq) =
         use stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)
         let hdr = Array.zeroCreate<byte> 24
@@ -127,12 +127,14 @@ type PagedMatrixStore(filePath: string, rows: int, cols: int, ?writeBufferSize: 
         let cols  = BitConverter.ToInt32(hdr, 4)
         let count = BitConverter.ToInt64(hdr, 8)
         let entryBuf = Array.zeroCreate<byte> 16
-        let entries = seq {
-            for _ in 1L .. count do
-                stream.Read(entryBuf) |> ignore
-                let r = BitConverter.ToInt32(entryBuf, 0)
-                let c = BitConverter.ToInt32(entryBuf, 4)
-                let v = BitConverter.ToDouble(entryBuf, 8)
-                yield r, c, v
-        }
-        rows, cols, count, entries
+        // Eagerly materialise all entries while the stream is open.
+        // Returning a lazy seq that captures the stream would be incorrect
+        // because the stream is disposed when this method returns.
+        let entries =
+            [| for _ in 1L .. count do
+                   stream.Read(entryBuf) |> ignore
+                   let r = BitConverter.ToInt32(entryBuf, 0)
+                   let c = BitConverter.ToInt32(entryBuf, 4)
+                   let v = BitConverter.ToDouble(entryBuf, 8)
+                   yield r, c, v |]
+        rows, cols, count, (entries :> (int * int * float) seq)

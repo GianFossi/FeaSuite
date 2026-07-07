@@ -104,8 +104,9 @@ type NewtonRaphsonSolver() =
                         let K_copy = DenseMatrix.copy K_ref
                         let r_copy = Array.copy r
                         NRHelpers.applyBCsToCorrection K_copy r_copy loadCase.BoundaryConditions dofMap
+                        let corrSystem = DenseAssembledSystem(totalDofs, K_copy, r_copy) :> IAssembledSystem
                         match (MathNetDenseLinearSolver() :> ILinearSolver)
-                                  .Solve({ K = K_copy; F = r_copy; TotalDofs = totalDofs }, [], dofMap) with
+                                  .Solve(corrSystem, [], dofMap) with
                         | Error e ->
                             solveResult  <- Error e
                             iterConverged <- true

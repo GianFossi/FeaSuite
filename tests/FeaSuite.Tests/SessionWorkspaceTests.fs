@@ -21,7 +21,7 @@ let private tmpFile ext =
 [<Fact>]
 let ``SolverOptions.defaults: expected values`` () =
     let opts = SolverOptions.defaults
-    Assert.Equal(Dense,   opts.MatrixStorage)
+    Assert.Equal(MatrixStorage.Dense, opts.MatrixStorage)
     Assert.Equal(BuiltIn, opts.SolverBackend)
     Assert.Equal(256,     opts.PageBufferSize)
     Assert.Equal(1024,    opts.VectorPageSize)
@@ -151,10 +151,12 @@ let ``ModelSerializer: loaded model solves to same result as original`` () =
         | Error e -> failwith (sprintf "LoadModel failed: %A" e)
         | Ok loaded ->
             let mkInput m = {
-                Model           = m
-                LoadCaseIndex   = 0
-                UseNonlinear    = false
-                NonlinearConfig = NonlinearConfig.defaults
+                Model              = m
+                LoadCaseIndex      = 0
+                UseNonlinear       = false
+                NonlinearConfig    = NonlinearConfig.defaults
+                LinearSolverKind   = Dense
+                UseSparseAssembler = false
             }
             match FeaPipeline.run (mkInput original),
                   FeaPipeline.run (mkInput loaded) with
@@ -268,10 +270,12 @@ let ``ResultSerializer: round-trips FEAResults from a solved Bar1D model`` () =
     try
         let model, lc = Helpers.buildBar1DModel 2e11 1e-4 1.0 1000.0
         let input = {
-            Model           = model
-            LoadCaseIndex   = 0
-            UseNonlinear    = false
-            NonlinearConfig = NonlinearConfig.defaults
+            Model              = model
+            LoadCaseIndex      = 0
+            UseNonlinear       = false
+            NonlinearConfig    = NonlinearConfig.defaults
+            LinearSolverKind   = Dense
+            UseSparseAssembler = false
         }
         match FeaPipeline.run input with
         | Error e -> failwith (sprintf "Pipeline failed: %A" e)

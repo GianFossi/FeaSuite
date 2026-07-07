@@ -14,6 +14,9 @@
     <Compile Include="ROPFlowTests.fs" />
     <Compile Include="SkylineMatrixTests.fs" />
     <Compile Include="SessionWorkspaceTests.fs" />
+    <Compile Include="IterativeSolverTests.fs" />
+    <Compile Include="SparseAssemblerTests.fs" />
+    <Compile Include="ModalSolverTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />

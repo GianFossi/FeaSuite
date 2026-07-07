@@ -11,13 +11,16 @@ open FeaSuite.Core
 
 /// Matrix storage format used by the assembler/solver pipeline.
 type MatrixStorage =
-    | Dense    /// Full dense float[,] – best for small systems (< ~5 000 DOFs)
-    | Skyline  /// Profile/skyline symmetric sparse – efficient for banded SPD systems
+    | Dense      /// Full dense float[,] – best for small systems (< ~5 000 DOFs)
+    | Skyline    /// Profile/skyline symmetric sparse – efficient for banded SPD systems
+    | SparseCsr  /// File-backed COO assembly finalised to CSR (PagedMatrixStore backend)
 
 /// Numerical back-end for solving the assembled linear system.
 type SolverBackend =
-    | BuiltIn  /// Built-in Gaussian elimination (no external packages)
-    | MathNet  /// MathNet.Numerics optimised routines (LU / iterative)
+    | BuiltIn        /// Built-in Gaussian elimination (no external packages)
+    | MathNet        /// MathNet.Numerics optimised routines (LU / iterative)
+    | SparseCg       /// Pure F# Conjugate Gradient with Jacobi preconditioner (SPD systems)
+    | SparseBiCgStab /// Pure F# BiCGSTAB with Jacobi preconditioner (general systems)
 
 // ---------------------------------------------------------------------------
 // SolverOptions – all configuration that drives a session
@@ -49,11 +52,25 @@ module SolverOptions =
 
     let private jsonOpts = JsonSerializerOptions(WriteIndented = true)
 
-    let private matrixStorageToString = function Dense -> "Dense" | Skyline -> "Skyline"
-    let private matrixStorageOfString = function "Skyline" -> Skyline | _ -> Dense
+    let private matrixStorageToString = function
+        | Dense     -> "Dense"
+        | Skyline   -> "Skyline"
+        | SparseCsr -> "SparseCsr"
+    let private matrixStorageOfString = function
+        | "Skyline"   -> Skyline
+        | "SparseCsr" -> SparseCsr
+        | _           -> Dense
 
-    let private backendToString = function BuiltIn -> "BuiltIn" | MathNet -> "MathNet"
-    let private backendOfString = function "MathNet" -> MathNet | _ -> BuiltIn
+    let private backendToString = function
+        | BuiltIn        -> "BuiltIn"
+        | MathNet        -> "MathNet"
+        | SparseCg       -> "SparseCg"
+        | SparseBiCgStab -> "SparseBiCgStab"
+    let private backendOfString = function
+        | "MathNet"        -> MathNet
+        | "SparseCg"       -> SparseCg
+        | "SparseBiCgStab" -> SparseBiCgStab
+        | _                -> BuiltIn
 
     // Build a JsonObject from an SolverOptions value.
     let private toJsonObject (opts: SolverOptions) =
