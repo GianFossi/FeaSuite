@@ -27,9 +27,10 @@ module ModelSerializer =
         | Beam Beam2D   -> "Beam2D"   | Beam Beam3D   -> "Beam3D"
         // Shell group
         | Shell Shell4   -> "Shell4"
-        | Shell Shell208 -> "Shell208" | Shell Shell209 -> "Shell209" | Shell Shell61 -> "Shell61"
+        | Shell Shell61  -> "Shell61"
         // Axisymmetric group
-        | Axisymmetric Plane75 -> "Plane75" | Axisymmetric Plane78 -> "Plane78" | Axisymmetric Plane83 -> "Plane83"
+        | Axisymmetric Plane75  -> "Plane75" | Axisymmetric Plane78 -> "Plane78" | Axisymmetric Plane83 -> "Plane83"
+        | Axisymmetric Shell208 -> "Shell208" | Axisymmetric Shell209 -> "Shell209"
         // Link group
         | Link Link11   -> "Link11"   | Link Link31  -> "Link31"   | Link Link33  -> "Link33"
         | Link Link34   -> "Link34"   | Link Link68  -> "Link68"   | Link Link180 -> "Link180"  | Link Link228  -> "Link228"
@@ -58,9 +59,10 @@ module ModelSerializer =
         | "Beam2D"   -> Beam Beam2D   | "Beam3D"   -> Beam Beam3D
         // Shell group
         | "Shell4"   -> Shell Shell4
-        | "Shell208" -> Shell Shell208 | "Shell209" -> Shell Shell209 | "Shell61" -> Shell Shell61
+        | "Shell61"  -> Shell Shell61
         // Axisymmetric group
         | "Plane75"  -> Axisymmetric Plane75 | "Plane78" -> Axisymmetric Plane78 | "Plane83" -> Axisymmetric Plane83
+        | "Shell208" -> Axisymmetric Shell208 | "Shell209" -> Axisymmetric Shell209
         // Link group
         | "Link11"   -> Link Link11   | "Link31"   -> Link Link31   | "Link33"  -> Link Link33
         | "Link34"   -> Link Link34   | "Link68"   -> Link Link68   | "Link180" -> Link Link180  | "Link228" -> Link Link228

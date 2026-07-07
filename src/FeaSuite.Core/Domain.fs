@@ -64,15 +64,15 @@ module ElementType =
             | Beam3D  -> 6   // UX, UY, UZ, ROTX, ROTY, ROTZ
         | Shell e ->
             match e with
-            | Shell4   -> 6  // UX, UY, UZ, ROTX, ROTY, ROTZ
-            | Shell208 -> 3  // UX, UY, ROTZ
-            | Shell209 -> 3  // UX, UY, ROTZ
-            | Shell61  -> 4  // UX, UY, UZ, ROTZ
+            | Shell4  -> 6  // UX, UY, UZ, ROTX, ROTY, ROTZ
+            | Shell61 -> 4  // UX, UY, UZ, ROTZ
         | Axisymmetric e ->
             match e with
-            | Plane75 -> 1   // TEMP
-            | Plane78 -> 1   // TEMP
-            | Plane83 -> 3   // UX, UY, UZ
+            | Plane75  -> 1   // TEMP
+            | Plane78  -> 1   // TEMP
+            | Plane83  -> 3   // UX, UY, UZ
+            | Shell208 -> 3   // UX, UY, ROTZ
+            | Shell209 -> 3   // UX, UY, ROTZ
         | Link e ->
             match e with
             | Link11  -> 3   // UX, UY, UZ

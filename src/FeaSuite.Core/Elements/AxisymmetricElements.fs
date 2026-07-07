@@ -6,6 +6,8 @@ namespace FeaSuite.Core
 
 /// Axisymmetric / axisymmetric-harmonic plane element sub-types.
 type AxisymmetricElement =
-    | Plane75 /// ANSYS PLANE75 – 2D Axisymmetric-Harmonic 4-Node Thermal Solid; DOF: TEMP
-    | Plane78 /// ANSYS PLANE78 – 2D Axisymmetric-Harmonic 8-Node Thermal Solid; DOF: TEMP
-    | Plane83 /// ANSYS PLANE83 – 2D Axisymmetric-Harmonic 8-Node Structural Solid; DOF: UX, UY, UZ
+    | Plane75  /// ANSYS PLANE75  – 2D Axisymmetric-Harmonic 4-Node Thermal Solid; DOF: TEMP
+    | Plane78  /// ANSYS PLANE78  – 2D Axisymmetric-Harmonic 8-Node Thermal Solid; DOF: TEMP
+    | Plane83  /// ANSYS PLANE83  – 2D Axisymmetric-Harmonic 8-Node Structural Solid; DOF: UX, UY, UZ
+    | Shell208 /// ANSYS SHELL208 – 2-Node Axisymmetric Shell; 2D; DOF: UX, UY, ROTZ
+    | Shell209 /// ANSYS SHELL209 – 3-Node Axisymmetric Shell; 2D; DOF: UX, UY, ROTZ
