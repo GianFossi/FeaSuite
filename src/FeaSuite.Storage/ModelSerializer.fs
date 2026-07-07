@@ -22,14 +22,52 @@ module ModelSerializer =
     // -----------------------------------------------------------------------
 
     let private elementTypeToString = function
-        | Bar1D   -> "Bar1D"   | Truss3D -> "Truss3D"
-        | Beam2D  -> "Beam2D"  | Beam3D  -> "Beam3D"
-        | Shell4  -> "Shell4"  | Solid8  -> "Solid8"
+        | Bar1D    -> "Bar1D"    | Truss3D  -> "Truss3D"
+        | Beam2D   -> "Beam2D"   | Beam3D   -> "Beam3D"
+        | Shell4   -> "Shell4"   | Solid8   -> "Solid8"
+        | Shell208 -> "Shell208" | Shell209 -> "Shell209" | Shell61  -> "Shell61"
+        | Cpt212   -> "Cpt212"   | Cpt213   -> "Cpt213"
+        | Cpt215   -> "Cpt215"   | Cpt216   -> "Cpt216"   | Cpt217   -> "Cpt217"
+        | Fluid29  -> "Fluid29"  | Fluid30  -> "Fluid30"  | Fluid38  -> "Fluid38"
+        | Fluid116 -> "Fluid116" | Fluid129 -> "Fluid129" | Fluid130 -> "Fluid130"
+        | Fluid136 -> "Fluid136" | Fluid138 -> "Fluid138" | Fluid139 -> "Fluid139"
+        | Fluid218 -> "Fluid218" | Fluid220 -> "Fluid220" | Fluid221 -> "Fluid221"
+        | Fluid243 -> "Fluid243" | Fluid244 -> "Fluid244"
+        | Follw201 -> "Follw201"
+        | Hsfld241 -> "Hsfld241" | Hsfld242 -> "Hsfld242"
+        | Infin47  -> "Infin47"  | Infin110 -> "Infin110" | Infin111 -> "Infin111" | Infin257 -> "Infin257"
+        | Inter192 -> "Inter192" | Inter193 -> "Inter193" | Inter194 -> "Inter194" | Inter195 -> "Inter195"
+        | Inter202 -> "Inter202" | Inter203 -> "Inter203" | Inter204 -> "Inter204" | Inter205 -> "Inter205"
+        | Link11   -> "Link11"   | Link31   -> "Link31"   | Link33   -> "Link33"
+        | Link34   -> "Link34"   | Link68   -> "Link68"   | Link180  -> "Link180"  | Link228  -> "Link228"
+        | Mass21   -> "Mass21"   | Mass71   -> "Mass71"
+        | Mpc184   -> "Mpc184"
+        | Pipe288  -> "Pipe288"  | Pipe289  -> "Pipe289"  | Elbow290 -> "Elbow290"
+        | Plane75  -> "Plane75"  | Plane78  -> "Plane78"  | Plane83  -> "Plane83"
 
     let private elementTypeOfString = function
-        | "Truss3D" -> Truss3D | "Beam2D" -> Beam2D
-        | "Beam3D"  -> Beam3D  | "Shell4" -> Shell4
-        | "Solid8"  -> Solid8  | _        -> Bar1D
+        | "Truss3D"  -> Truss3D  | "Beam2D"  -> Beam2D  | "Beam3D"  -> Beam3D
+        | "Shell4"   -> Shell4   | "Solid8"  -> Solid8
+        | "Shell208" -> Shell208 | "Shell209" -> Shell209 | "Shell61" -> Shell61
+        | "Cpt212"   -> Cpt212   | "Cpt213"  -> Cpt213
+        | "Cpt215"   -> Cpt215   | "Cpt216"  -> Cpt216   | "Cpt217"  -> Cpt217
+        | "Fluid29"  -> Fluid29  | "Fluid30" -> Fluid30  | "Fluid38" -> Fluid38
+        | "Fluid116" -> Fluid116 | "Fluid129" -> Fluid129 | "Fluid130" -> Fluid130
+        | "Fluid136" -> Fluid136 | "Fluid138" -> Fluid138 | "Fluid139" -> Fluid139
+        | "Fluid218" -> Fluid218 | "Fluid220" -> Fluid220 | "Fluid221" -> Fluid221
+        | "Fluid243" -> Fluid243 | "Fluid244" -> Fluid244
+        | "Follw201" -> Follw201
+        | "Hsfld241" -> Hsfld241 | "Hsfld242" -> Hsfld242
+        | "Infin47"  -> Infin47  | "Infin110" -> Infin110 | "Infin111" -> Infin111 | "Infin257" -> Infin257
+        | "Inter192" -> Inter192 | "Inter193" -> Inter193 | "Inter194" -> Inter194 | "Inter195" -> Inter195
+        | "Inter202" -> Inter202 | "Inter203" -> Inter203 | "Inter204" -> Inter204 | "Inter205" -> Inter205
+        | "Link11"   -> Link11   | "Link31"  -> Link31   | "Link33"  -> Link33
+        | "Link34"   -> Link34   | "Link68"  -> Link68   | "Link180" -> Link180   | "Link228" -> Link228
+        | "Mass21"   -> Mass21   | "Mass71"  -> Mass71
+        | "Mpc184"   -> Mpc184
+        | "Pipe288"  -> Pipe288  | "Pipe289" -> Pipe289  | "Elbow290" -> Elbow290
+        | "Plane75"  -> Plane75  | "Plane78" -> Plane78  | "Plane83" -> Plane83
+        | _          -> Bar1D
 
     // -----------------------------------------------------------------------
     // Domain → JsonObject
