@@ -185,7 +185,10 @@ module ResultRecovery =
                 false, 0.0
             | Some sy ->
                 if vonMises > sy then
-                    // Estimate instantaneous plastic strain = ε_eq − elastic part
+                    // Cumulative plastic strain estimated as ε_eq minus the elastic
+                    // equivalent (σ_vm/E) for proportional single-step loading.
+                    // For multi-step non-linear analyses this should be integrated
+                    // over all converged load increments.
                     let eqElastic = sy / E
                     true, max 0.0 (eqStrain - eqElastic)
                 else
@@ -242,13 +245,13 @@ module ResultRecovery =
                           model.Nodes.TryFind nidI,
                           model.Nodes.TryFind nidJ with
                     | Some mat, Some nodeI, Some nodeJ ->
-                        let v = Point3D.vectorTo nodeI.Position nodeJ.Position
-                        let L = Vector3D.magnitude v
-                        let lc = v.Dx / L    // direction cosine X
-                        let mc = v.Dy / L    // direction cosine Y
-                        let nc = v.Dz / L    // direction cosine Z
-                        let E  = mat.YoungModulus
-                        let nu = mat.PoissonRatio
+                        let axisVec = Point3D.vectorTo nodeI.Position nodeJ.Position
+                        let L    = Vector3D.magnitude axisVec
+                        let cosX = axisVec.Dx / L    // direction cosine X
+                        let cosY = axisVec.Dy / L    // direction cosine Y
+                        let cosZ = axisVec.Dz / L    // direction cosine Z
+                        let E    = mat.YoungModulus
+                        let nu   = mat.PoissonRatio
                         // Axial elongation: δ = (u_J − u_I) · axis_unit_vector
                         let uxI = uVec.[dofMap.[(nidI, 0)]]
                         let uyI = uVec.[dofMap.[(nidI, 1)]]
@@ -256,11 +259,11 @@ module ResultRecovery =
                         let uxJ = uVec.[dofMap.[(nidJ, 0)]]
                         let uyJ = uVec.[dofMap.[(nidJ, 1)]]
                         let uzJ = uVec.[dofMap.[(nidJ, 2)]]
-                        let delta  = lc*(uxJ-uxI) + mc*(uyJ-uyI) + nc*(uzJ-uzI)
+                        let delta  = cosX*(uxJ-uxI) + cosY*(uyJ-uyI) + cosZ*(uzJ-uzI)
                         let eAxial = delta / L
                         let sAxial = E * eAxial
                         let yieldSt = yieldByMat.TryFind elem.MaterialId
-                        yield makeUniaxialResult elem.Id lc mc nc eAxial sAxial nu E yieldSt
+                        yield makeUniaxialResult elem.Id cosX cosY cosZ eAxial sAxial nu E yieldSt
                     | _ -> ()
                 | _ -> () ]
 
