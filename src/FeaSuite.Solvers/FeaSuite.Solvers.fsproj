@@ -10,17 +10,22 @@
   <ItemGroup>
     <Compile Include="DenseMatrix.fs" />
     <Compile Include="Assembler.fs" />
+    <Compile Include="CsrMatrix.fs" />
     <Compile Include="LinearSolver.fs" />
     <Compile Include="SkylineMatrix.fs" />
     <Compile Include="MathNetSolver.fs" />
+    <Compile Include="IterativeSolvers.fs" />
+    <Compile Include="SparseAssembler.fs" />
     <Compile Include="NonlinearSolver.fs" />
     <Compile Include="Pipeline.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="MathNet.Numerics.MKL.Win-x64" Version="5.0.0" />
+    <!-- MKL native acceleration is optional; managed fallback is used when unavailable. -->
+    <PackageReference Include="MathNet.Numerics.MKL.Win-x64" Version="3.0.0" Condition="'$(OS)' == 'Windows_NT'" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FeaSuite.Core\FeaSuite.Core.fsproj" />
+    <ProjectReference Include="..\FeaSuite.Storage\FeaSuite.Storage.fsproj" />
   </ItemGroup>
 </Project>

@@ -36,7 +36,7 @@ let private buildTruss3DModelWithCases (cases: TrussCase list) : FEAModel =
 
     let mkBar eid i j = {
         Id         = ElementId eid
-        Type       = Bar3D
+        Type       = Truss3D
         NodeIds    = [ NodeId i; NodeId j ]
         MaterialId = MaterialId 1
         Properties = Map.empty
@@ -85,10 +85,12 @@ let private runLinear (model: FEAModel) (lcIndex: int) =
         LoadCaseIndex   = lcIndex
         UseNonlinear    = false
         NonlinearConfig = NonlinearConfig.defaults
+        LinearSolverKind   = Dense
+        UseSparseAssembler = false
     }
     FeaPipeline.run input
 
-let private sumAbsReactionsAtBase (out: PipelineOutput) =
+let private sumAbsReactionsAtBase (out: SolveOutput) =
     out.Reactions
     |> Seq.filter (fun kv ->
         let (nid, _) = kv.Key

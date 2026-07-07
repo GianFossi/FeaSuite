@@ -15,6 +15,8 @@ It provides a complete mini-solver pipeline — from model definition to result 
 | Out-of-core paged storage (file-backed vectors and matrices) | ✅ v1.0 |
 | Railway-Oriented error handling (ROP / `Validation<'T>`) | ✅ v1.0 |
 | Geometry adapter (compatible with GianFossi/Geometry) | ✅ v1.0 |
+| CG / BiCGSTAB sparse iterative solvers (large systems) | ✅ v1.1 |
+| Sparse CSR assembly backed by `PagedMatrixStore` | ✅ v1.1 |
 | Beam / Shell / Solid elements | 🗺 Roadmap |
 
 ---
@@ -35,9 +37,14 @@ FeaSuite.slnx
 │   ├── FeaSuite.Solvers/        Linear and non-linear solvers
 │   │   ├── DenseMatrix.fs       Dense array helpers (add submatrix, norm, mul)
 │   │   ├── Assembler.fs         DenseAssembler – Bar1D and Truss3D stiffness + assembly
+│   │   ├── CsrMatrix.fs         CSR sparse matrix type, SpMV, BC elimination, ISparseAssembledSystem
 │   │   ├── LinearSolver.fs      DenseLinearSolver – Gaussian elimination with BCs
+│   │   ├── SkylineMatrix.fs     Skyline (profile) sparse matrix + Cholesky solver
+│   │   ├── MathNetSolver.fs     MathNet dense LU + BiCGSTAB solvers
+│   │   ├── IterativeSolvers.fs  CgSolver and BiCgStabSolver – pure F# iterative solvers
+│   │   ├── SparseAssembler.fs   SparseAssembler – PagedMatrixStore-backed CSR assembly
 │   │   ├── NonlinearSolver.fs   NewtonRaphsonSolver – incremental N-R with correction BCs
-│   │   └── Pipeline.fs          FeaPipeline.run – end-to-end solve
+│   │   └── Pipeline.fs          FeaPipeline.run – end-to-end solve, solver selection
 │   │
 │   ├── FeaSuite.Storage/        Out-of-core paged storage
 │   │   ├── PagedVector.fs       File-backed float vector with LRU page cache
@@ -109,7 +116,8 @@ let model =
 
 // --- Run the linear pipeline ---
 let input = { Model = model; LoadCaseIndex = 0; UseNonlinear = false
-              NonlinearConfig = NonlinearConfig.defaults }
+              NonlinearConfig = NonlinearConfig.defaults
+              LinearSolverKind = Dense; UseSparseAssembler = false }
 
 match FeaPipeline.run input with
 | Error errors ->
@@ -143,14 +151,85 @@ vec.Flush()
 // Only `pageSize` floats are in RAM at any time.
 ```
 
+### Iterative solvers (CG / BiCGSTAB)
+
+Use `LinearSolverKind` to select an iterative solver for large sparse systems.
+Both solvers use diagonal (Jacobi) preconditioning and work with any `IAssembledSystem`.
+
+```fsharp
+// Conjugate Gradient – best for symmetric positive-definite systems
+let cgInput = { input with LinearSolverKind = SparseCg (10_000, 1e-10) }
+match FeaPipeline.run cgInput with
+| Ok out  -> printfn "CG u2 = %.3e m" out.Displacements.[NodeId 2].[0]
+| Error e -> printfn "CG failed: %A" e
+
+// BiCGSTAB – handles general (possibly non-symmetric) systems
+let bicgInput = { input with LinearSolverKind = SparseBiCgStab (10_000, 1e-10) }
+match FeaPipeline.run bicgInput with
+| Ok out  -> printfn "BiCGSTAB u2 = %.3e m" out.Displacements.[NodeId 2].[0]
+| Error e -> printfn "BiCGSTAB failed: %A" e
+
+// Access diagnostics (iterations, residual norm, converged flag)
+// by casting the solver directly; the pipeline also wraps this automatically.
+let solver = CgSolver(maxIterations = 5000, tolerance = 1e-12)
+let sys    = (* your IAssembledSystem *) ...
+match (solver :> ILinearSolver).Solve(sys, bcs, dofMap) with
+| Ok u ->
+    let diag = (solver :> IIterativeSolverDiagnostics).LastDiagnostics.Value
+    printfn "Converged=%b  Iters=%d  ||r||=%.3e" diag.Converged diag.Iterations diag.ResidualNorm
+| Error e -> printfn "Solver failed: %A" e
+```
+
+Default shorthand helpers:
+
+```fsharp
+LinearSolverKind.defaultCg       // SparseCg (10_000, 1e-10)
+LinearSolverKind.defaultBiCgStab // SparseBiCgStab (10_000, 1e-10)
+```
+
+### Sparse CSR assembly (`SparseAssembler` + `PagedMatrixStore`)
+
+For large models, use `UseSparseAssembler = true` to assemble via a
+file-backed `PagedMatrixStore` (COO format) and finalise to CSR.
+This keeps memory use bounded during assembly.
+
+```fsharp
+let sparseInput = {
+    input with
+        UseSparseAssembler = true
+        LinearSolverKind   = LinearSolverKind.defaultCg
+}
+match FeaPipeline.run sparseInput with
+| Ok out  -> printfn "sparse+CG u2 = %.3e m" out.Displacements.[NodeId 2].[0]
+| Error e -> printfn "sparse pipeline failed: %A" e
+```
+
+The resulting `IAssembledSystem` also implements `ISparseAssembledSystem`, which
+exposes the raw CSR arrays for callers that need direct access:
+
+```fsharp
+let asm = SparseAssembler() :> IAssembler
+match asm.Assemble(model, loadCase) with
+| Ok sys ->
+    let sparse = sys :?> ISparseAssembledSystem
+    let csr    = sparse.KCsr
+    printfn "NNZ = %d  rows = %d" csr.Values.Length csr.Rows
+    // csr.RowPtr, csr.ColIdx, csr.Values are standard CSR arrays
+| Error e -> printfn "Assembly failed: %A" e
+```
+
+**Tradeoff note:** `SparseAssembler` converts the COO file to an in-memory CSR
+matrix after assembly. For very large models, ensure sufficient RAM for the CSR
+representation of K. The temporary COO file is deleted after conversion.
+
 ---
 
 ## Roadmap
 
 ### Near-term
-- [ ] **Truss3D pipeline test** (full 3-D truss with multiple load cases)
-- [ ] **CG / BiCGSTAB sparse iterative solver** for large systems
-- [ ] **Sparse CSR matrix assembly** backed by `PagedMatrixStore`
+- [x] **Truss3D pipeline test** (full 3-D truss with multiple load cases)
+- [x] **CG / BiCGSTAB sparse iterative solver** for large systems
+- [x] **Sparse CSR matrix assembly** backed by `PagedMatrixStore`
 
 ### Medium-term
 - [ ] **Beam2D element** (Euler-Bernoulli, 3 DOFs/node: ux, uy, rz)
