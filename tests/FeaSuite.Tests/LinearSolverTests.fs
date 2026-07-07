@@ -26,6 +26,8 @@ let ``bar1D: displacement equals F*L/(E*A)`` () =
         LoadCaseIndex   = 0
         UseNonlinear    = false
         NonlinearConfig = NonlinearConfig.defaults
+        LinearSolverKind   = Dense
+        UseSparseAssembler = false
     }
     match FeaPipeline.run input with
     | Error e -> failwith (sprintf "Pipeline failed: %A" e)
@@ -47,6 +49,8 @@ let ``bar1D: reaction at fixed node equals -F`` () =
         LoadCaseIndex   = 0
         UseNonlinear    = false
         NonlinearConfig = NonlinearConfig.defaults
+        LinearSolverKind   = Dense
+        UseSparseAssembler = false
     }
     match FeaPipeline.run input with
     | Error e -> failwith (sprintf "Pipeline failed: %A" e)
@@ -65,6 +69,8 @@ let ``bar1D: fixed node displacement is zero`` () =
         LoadCaseIndex   = 0
         UseNonlinear    = false
         NonlinearConfig = NonlinearConfig.defaults
+        LinearSolverKind   = Dense
+        UseSparseAssembler = false
     }
     match FeaPipeline.run input with
     | Error e -> failwith (sprintf "Pipeline failed: %A" e)
@@ -80,7 +86,7 @@ let ``bar1D: different stiffness values give correct ratio`` () =
     let A = 1e-4
     let runWith e =
         let model, _ = Helpers.buildBar1DModel e A L F
-        let input = { Model = model; LoadCaseIndex = 0; UseNonlinear = false; NonlinearConfig = NonlinearConfig.defaults }
+        let input = { Model = model; LoadCaseIndex = 0; UseNonlinear = false; NonlinearConfig = NonlinearConfig.defaults; LinearSolverKind = Dense; UseSparseAssembler = false }
         match FeaPipeline.run input with
         | Ok out   -> out.Displacements.[NodeId 2].[0]
         | Error err -> failwith (sprintf "%A" err)
@@ -96,7 +102,7 @@ let ``nonlinear bar1D converges to same solution as linear`` () =
     let F = 1000.0
     let model, _ = Helpers.buildBar1DModel E A L F
 
-    let linInput = { Model = model; LoadCaseIndex = 0; UseNonlinear = false; NonlinearConfig = NonlinearConfig.defaults }
+    let linInput = { Model = model; LoadCaseIndex = 0; UseNonlinear = false; NonlinearConfig = NonlinearConfig.defaults; LinearSolverKind = Dense; UseSparseAssembler = false }
     let nlConfig = { NonlinearConfig.defaults with IncrementCount = 5 }
     let nlInput  = { linInput with UseNonlinear = true; NonlinearConfig = nlConfig }
 

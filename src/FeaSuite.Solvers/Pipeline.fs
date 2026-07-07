@@ -7,13 +7,55 @@ open FeaSuite.Core
 // Validate → Assemble → Solve → Recover results
 // ---------------------------------------------------------------------------
 
+/// Selects the linear solver used for direct (non-nonlinear) analyses.
+type LinearSolverKind =
+    /// Built-in Gaussian elimination on the dense K matrix (default).
+    /// Best for small-to-medium models (up to ~5 000 DOFs).
+    | Dense
+    /// Skyline (profile) Cholesky direct sparse solver.
+    /// Requires a symmetric positive-definite system.
+    /// More memory-efficient than Dense for banded/sparse stiffness matrices.
+    | SparseDirect
+    /// Pure F# Conjugate Gradient with Jacobi preconditioner (PCG).
+    /// Requires a symmetric positive-definite system; efficient for large
+    /// sparse models when combined with SparseAssembler.
+    | SparseCg of maxIterations: int * tolerance: float
+    /// Pure F# BiCGSTAB with Jacobi preconditioner.
+    /// Handles general (non-symmetric) systems; efficient for large sparse
+    /// models when combined with SparseAssembler.
+    | SparseBiCgStab of maxIterations: int * tolerance: float
+
+module LinearSolverKind =
+    /// Default CG settings (10 000 iterations, tolerance 1e-10).
+    let defaultCg         = SparseCg (10_000, 1e-10)
+    /// Default BiCGSTAB settings (10 000 iterations, tolerance 1e-10).
+    let defaultBiCgStab   = SparseBiCgStab (10_000, 1e-10)
+
 /// Input for a single-load-case solve.
 type SolveInput = {
-    Model          : FEAModel
-    LoadCaseIndex  : int        // index into Model.LoadCases
-    UseNonlinear   : bool
-    NonlinearConfig : NonlinearConfig
+    Model               : FEAModel
+    /// Index into Model.LoadCases.
+    LoadCaseIndex       : int
+    UseNonlinear        : bool
+    NonlinearConfig     : NonlinearConfig
+    /// Linear solver method (ignored when UseNonlinear = true).
+    /// Defaults to Dense (Gaussian elimination).
+    LinearSolverKind    : LinearSolverKind
+    /// When true, uses SparseAssembler (PagedMatrixStore-backed CSR assembly)
+    /// instead of the default DenseAssembler.
+    UseSparseAssembler  : bool
 }
+
+module SolveInput =
+    /// Default SolveInput values – callers can copy-and-update with { ... with ... }.
+    let defaults = {
+        Model              = FEAModel.empty
+        LoadCaseIndex      = 0
+        UseNonlinear       = false
+        NonlinearConfig    = NonlinearConfig.defaults
+        LinearSolverKind   = Dense
+        UseSparseAssembler = false
+    }
 
 /// Result of a successful solve.
 type SolveOutput = {
@@ -25,9 +67,15 @@ type SolveOutput = {
 
 module FeaPipeline =
 
-    let private assembler    = DenseAssembler()    :> IAssembler
-    let private linSolver    = DenseLinearSolver() :> ILinearSolver
-    let private nlSolver     = NewtonRaphsonSolver():> INonlinearSolver
+    let private nlSolver = NewtonRaphsonSolver() :> INonlinearSolver
+
+    /// Instantiate the appropriate linear solver for the given kind.
+    let private makeLinearSolver (kind: LinearSolverKind) : ILinearSolver =
+        match kind with
+        | Dense                          -> DenseLinearSolver()      :> ILinearSolver
+        | SparseDirect                   -> SkylineLinearSolver()    :> ILinearSolver
+        | SparseCg (maxIter, tol)        -> CgSolver(maxIter, tol)      :> ILinearSolver
+        | SparseBiCgStab (maxIter, tol)  -> BiCgStabSolver(maxIter, tol) :> ILinearSolver
 
     /// Run the full FEA pipeline for the given input.
     let run (input: SolveInput) : Validation<SolveOutput> =
@@ -45,23 +93,30 @@ module FeaPipeline =
         let loadCase = loadCases.[input.LoadCaseIndex]
         let dofMap, totalDofs = FEAModel.buildDofMap model
 
-        // 3. Assemble (need original K for reaction recovery)
+        // 3. Choose assembler
+        let assembler : IAssembler =
+            if input.UseSparseAssembler then SparseAssembler() :> IAssembler
+            else                             DenseAssembler()  :> IAssembler
+
+        // 4. Assemble (original system kept for reaction recovery)
         match assembler.Assemble(model, loadCase) with
         | Error e -> Error e
         | Ok system ->
 
-        // 4. Solve
+        // 5. Solve
         let solveResult =
             if input.UseNonlinear then
-                nlSolver.Solve(assembler, model, loadCase, input.NonlinearConfig)
+                // Newton-Raphson always uses the dense assembler/solver internally
+                nlSolver.Solve(DenseAssembler(), model, loadCase, input.NonlinearConfig)
             else
-                linSolver.Solve(system, loadCase.BoundaryConditions, dofMap)
+                let solver = makeLinearSolver input.LinearSolverKind
+                solver.Solve(system, loadCase.BoundaryConditions, dofMap)
 
         match solveResult with
         | Error e -> Error e
         | Ok uVec ->
 
-        // 5. Recover displacements
+        // 6. Recover displacements
         let displacements =
             model.Nodes
             |> Map.map (fun nid node ->
@@ -69,8 +124,15 @@ module FeaPipeline =
                        let gdof = dofMap.[(nid, d)]
                        yield uVec.[gdof] |])
 
-        // 6. Recover reactions R = K·u − F (at constrained DOFs)
-        let ku = DenseMatrix.mulVec system.K uVec
+        // 7. Recover reactions R = K·u − F (at constrained DOFs)
+        // Use CSR SpMV when a sparse system is available, otherwise dense.
+        let ku =
+            match system with
+            | :? ISparseAssembledSystem as sparse ->
+                CsrMatrix.mulVec sparse.KCsr uVec
+            | _ ->
+                DenseMatrix.mulVec system.K uVec
+
         let reactions =
             [ for bc in loadCase.BoundaryConditions do
                   match dofMap.TryFind (bc.NodeId, bc.LocalDofIndex) with

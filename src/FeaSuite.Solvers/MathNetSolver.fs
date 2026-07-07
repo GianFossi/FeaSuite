@@ -25,8 +25,8 @@ open MathNet.Numerics.LinearAlgebra.Solvers
 // ---------------------------------------------------------------------------
 
 module private NativeProvider =
-    let private mutable initialized = false
-    let private mutable useMkl = false
+    let mutable initialized = false
+    let mutable useMkl = false
 
     let ensureConfigured () =
         if not initialized then

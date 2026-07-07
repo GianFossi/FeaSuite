@@ -118,10 +118,12 @@ let ``pipeline returns NonConvergence when NR diverges (artificial)`` () =
     // because Newton-Raphson is exact for linear systems.
     // So here we just verify it runs and returns Ok (shows NR handles linear exactly).
     let input = {
-        FeaSuite.Solvers.Model           = model
-        FeaSuite.Solvers.LoadCaseIndex   = 0
-        FeaSuite.Solvers.UseNonlinear    = true
-        FeaSuite.Solvers.NonlinearConfig = config
+        FeaSuite.Solvers.Model              = model
+        FeaSuite.Solvers.LoadCaseIndex      = 0
+        FeaSuite.Solvers.UseNonlinear       = true
+        FeaSuite.Solvers.NonlinearConfig    = config
+        FeaSuite.Solvers.LinearSolverKind   = FeaSuite.Solvers.Dense
+        FeaSuite.Solvers.UseSparseAssembler = false
     }
     // For a linear problem, NR converges in 1 iteration; result should be Ok.
     // This test documents the expected behavior.

@@ -9,10 +9,14 @@
     <Compile Include="Helpers.fs" />
     <Compile Include="ModelValidationTests.fs" />
     <Compile Include="LinearSolverTests.fs" />
+    <Compile Include="Truss3DPipelineTests.fs" />
     <Compile Include="PagedStorageTests.fs" />
     <Compile Include="ROPFlowTests.fs" />
     <Compile Include="SkylineMatrixTests.fs" />
     <Compile Include="SessionWorkspaceTests.fs" />
+    <Compile Include="IterativeSolverTests.fs" />
+    <Compile Include="SparseAssemblerTests.fs" />
+    <Compile Include="ModalSolverTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
