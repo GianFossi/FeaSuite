@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FeaSuite.Core/FeaSuite.Core.fsproj" />
+    <Project Path="src/FeaSuite.Post/FeaSuite.Post.fsproj" />
+    <Project Path="src/FeaSuite.Solvers/FeaSuite.Solvers.fsproj" />
+    <Project Path="src/FeaSuite.Storage/FeaSuite.Storage.fsproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FeaSuite.Tests/FeaSuite.Tests.fsproj" />
+  </Folder>
+</Solution>

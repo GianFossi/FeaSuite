@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>FeaSuite.Core</AssemblyName>
+    <RootNamespace>FeaSuite.Core</RootNamespace>
+    <Nullable>enable</Nullable>
+    <Optimize>true</Optimize>
+    <Description>FeaSuite core domain types, interfaces and validation</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Geometry.fs" />
+    <Compile Include="ROP.fs" />
+    <Compile Include="Domain.fs" />
+    <Compile Include="Interfaces.fs" />
+    <Compile Include="Validation.fs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>FeaSuite.Post</AssemblyName>
+    <RootNamespace>FeaSuite.Post</RootNamespace>
+    <Nullable>enable</Nullable>
+    <Optimize>true</Optimize>
+    <Description>FeaSuite post-processing: result recovery, displacement and stress extraction</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="ResultTypes.fs" />
+    <Compile Include="ResultRecovery.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FeaSuite.Core\FeaSuite.Core.fsproj" />
+    <ProjectReference Include="..\FeaSuite.Solvers\FeaSuite.Solvers.fsproj" />
+  </ItemGroup>
+</Project>
