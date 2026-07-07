@@ -24,6 +24,22 @@ open MathNet.Numerics.LinearAlgebra.Solvers
 //   Better suited for large sparse symmetric positive-definite systems.
 // ---------------------------------------------------------------------------
 
+module private NativeProvider =
+    let private mutable initialized = false
+    let private mutable useMkl = false
+
+    let ensureConfigured () =
+        if not initialized then
+            initialized <- true
+            try
+                MathNet.Numerics.Control.UseNativeMKL()
+                useMkl <- true
+            with _ ->
+                // Automatic fallback to managed MathNet backend
+                useMkl <- false
+        useMkl
+
+
 /// Apply boundary conditions by the standard DOF-elimination method.
 /// Modifies K and F in place.
 module private BcElimination =
@@ -58,6 +74,7 @@ type MathNetDenseLinearSolver() =
             BcElimination.apply n K F bcs dofMap
 
             try
+                let _ = NativeProvider.ensureConfigured ()
                 let A = Matrix<float>.Build.DenseOfArray(K)
                 let b = Vector<float>.Build.DenseOfArray(F)
                 let x = A.Solve(b)
@@ -85,6 +102,7 @@ type MathNetSparseLinearSolver(?maxIterations: int, ?tolerance: float) =
             BcElimination.apply n K F bcs dofMap
 
             try
+                let _ = NativeProvider.ensureConfigured ()
                 let A = Matrix<float>.Build.SparseOfArray(K)
                 let b = Vector<float>.Build.DenseOfArray(F)
 
