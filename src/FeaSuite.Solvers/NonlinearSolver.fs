@@ -54,6 +54,9 @@ type NewtonRaphsonSolver() =
             let K_ref    = refSystem.K          // reference stiffness (shared)
             let u        = Array.zeroCreate totalDofs
 
+            // Ensure linear backend is configured once (MKL if available, fallback otherwise)
+            let _ = NativeProvider.ensureConfigured ()
+
             // Apply initial prescribed displacements
             for bc in loadCase.BoundaryConditions do
                 match dofMap.TryFind (bc.NodeId, bc.LocalDofIndex) with
@@ -101,7 +104,8 @@ type NewtonRaphsonSolver() =
                         let K_copy = DenseMatrix.copy K_ref
                         let r_copy = Array.copy r
                         NRHelpers.applyBCsToCorrection K_copy r_copy loadCase.BoundaryConditions dofMap
-                        match GaussianElimination.solve K_copy r_copy with
+                        match (MathNetDenseLinearSolver() :> ILinearSolver)
+                                  .Solve({ K = K_copy; F = r_copy; TotalDofs = totalDofs }, [], dofMap) with
                         | Error e ->
                             solveResult  <- Error e
                             iterConverged <- true
