@@ -86,7 +86,7 @@ type ElementType =
     | Infin47  /// 3D Infinite Boundary; 4 nodes; DOF: MAG, TEMP
     | Infin110 /// 2D Infinite Solid; 4 or 8 nodes; DOF: AZ, VOLT, TEMP
     | Infin111 /// 3D Infinite Solid; 8 or 20 nodes; DOF: MAG, AZ, VOLT, TEMP
-    | Infin257 /// 2D/3D Structural Infinite Solid; DOF (2D): UX, UY; DOF (3D): UX, UY, UZ
+    | Infin257 /// 2D/3D Structural Infinite Solid; DOF (2D): UX, UY (2/node); DOF (3D): UX, UY, UZ (3/node) – actual count governed by Node.DegreesOfFreedom
     // --- ANSYS INTER elements -----------------------------------------------
     | Inter192 /// Structural 2D Interface 4-Node Gasket; DOF: UX, UY
     | Inter193 /// Structural 2D Interface 6-Node Gasket; DOF: UX, UY
@@ -161,7 +161,7 @@ module ElementType =
         | Infin47  -> 2   // MAG, TEMP
         | Infin110 -> 3   // AZ, VOLT, TEMP
         | Infin111 -> 4   // MAG, AZ, VOLT, TEMP
-        | Infin257 -> 3   // UX, UY, UZ (3D variant; 2D nodes carry UX, UY per the Node.DegreesOfFreedom field)
+        | Infin257 -> 3   // UX, UY, UZ (3D); for 2D models, Node.DegreesOfFreedom governs the actual per-node count (2)
         // ANSYS INTER
         | Inter192 -> 2   // UX, UY
         | Inter193 -> 2   // UX, UY
