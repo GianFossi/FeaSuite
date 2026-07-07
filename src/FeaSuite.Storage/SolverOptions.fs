@@ -137,7 +137,7 @@ module SolverOptions =
             for kvp in patchObj do
                 let v = kvp.Value
                 baseObj.[kvp.Key] <-
-                    if obj.ReferenceEquals(v, null) then null
+                    if isNull v then null
                     else v.DeepClone()
 
             let merged = baseObj.ToJsonString(jsonOpts)
