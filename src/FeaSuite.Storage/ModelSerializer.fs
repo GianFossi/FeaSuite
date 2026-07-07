@@ -1,0 +1,225 @@
+namespace FeaSuite.Storage
+
+open System.IO
+open System.Text.Json
+open System.Text.Json.Nodes
+open FeaSuite.Core
+
+// ---------------------------------------------------------------------------
+// ModelSerializer – save / load FEAModel to / from a JSON file.
+//
+// Uses System.Text.Json.Nodes (JsonObject / JsonArray) to build and parse the
+// JSON document directly, without DTO types, to avoid F# record serialisation
+// limitations with System.Text.Json.
+// ---------------------------------------------------------------------------
+
+module ModelSerializer =
+
+    let private jsonOpts = JsonSerializerOptions(WriteIndented = true)
+
+    // -----------------------------------------------------------------------
+    // Helper: inline element-type string encoding
+    // -----------------------------------------------------------------------
+
+    let private elementTypeToString = function
+        | Bar1D   -> "Bar1D"   | Truss3D -> "Truss3D"
+        | Beam2D  -> "Beam2D"  | Beam3D  -> "Beam3D"
+        | Shell4  -> "Shell4"  | Solid8  -> "Solid8"
+
+    let private elementTypeOfString = function
+        | "Truss3D" -> Truss3D | "Beam2D" -> Beam2D
+        | "Beam3D"  -> Beam3D  | "Shell4" -> Shell4
+        | "Solid8"  -> Solid8  | _        -> Bar1D
+
+    // -----------------------------------------------------------------------
+    // Domain → JsonObject
+    // -----------------------------------------------------------------------
+
+    let private nodeToJson (n: Node) =
+        let o = JsonObject()
+        o["Id"]               <- JsonValue.Create(NodeId.value n.Id)
+        o["X"]                <- JsonValue.Create(n.Position.X)
+        o["Y"]                <- JsonValue.Create(n.Position.Y)
+        o["Z"]                <- JsonValue.Create(n.Position.Z)
+        o["DegreesOfFreedom"] <- JsonValue.Create(n.DegreesOfFreedom)
+        o
+
+    let private materialToJson (m: Material) =
+        let o = JsonObject()
+        o["Id"]               <- JsonValue.Create(MaterialId.value m.Id)
+        o["Name"]             <- JsonValue.Create(m.Name)
+        o["YoungModulus"]     <- JsonValue.Create(m.YoungModulus)
+        o["PoissonRatio"]     <- JsonValue.Create(m.PoissonRatio)
+        o["Density"]          <- JsonValue.Create(m.Density)
+        o["HasCrossSection"]  <- JsonValue.Create(m.CrossSectionArea.IsSome)
+        o["CrossSectionArea"] <- JsonValue.Create(m.CrossSectionArea |> Option.defaultValue 0.0)
+        o
+
+    let private elementToJson (e: Element) =
+        let o = JsonObject()
+        o["Id"]         <- JsonValue.Create(ElementId.value e.Id)
+        o["Type"]       <- JsonValue.Create(elementTypeToString e.Type)
+        o["MaterialId"] <- JsonValue.Create(MaterialId.value e.MaterialId)
+        let nids = JsonArray()
+        for nid in e.NodeIds do nids.Add(JsonValue.Create(NodeId.value nid))
+        o["NodeIds"] <- nids
+        let props = JsonObject()
+        for KeyValue(k, v) in e.Properties do props.[k] <- JsonValue.Create(v)
+        o["Properties"] <- props
+        o
+
+    let private loadToJson (l: Load) =
+        let o = JsonObject()
+        o["NodeId"]        <- JsonValue.Create(NodeId.value l.NodeId)
+        o["LocalDofIndex"] <- JsonValue.Create(l.LocalDofIndex)
+        o["Value"]         <- JsonValue.Create(l.Value)
+        o
+
+    let private bcToJson (bc: BoundaryCondition) =
+        let o = JsonObject()
+        o["NodeId"]        <- JsonValue.Create(NodeId.value bc.NodeId)
+        o["LocalDofIndex"] <- JsonValue.Create(bc.LocalDofIndex)
+        let ctype, pval =
+            match bc.Constraint with Fixed -> "Fixed", 0.0 | Prescribed v -> "Prescribed", v
+        o["ConstraintType"]  <- JsonValue.Create(ctype)
+        o["PrescribedValue"] <- JsonValue.Create(pval)
+        o
+
+    let private loadCaseToJson (lc: LoadCase) =
+        let o = JsonObject()
+        o["Id"]   <- JsonValue.Create(LoadCaseId.value lc.Id)
+        o["Name"] <- JsonValue.Create(lc.Name)
+        let loads = JsonArray()
+        for l in lc.Loads do loads.Add(loadToJson l)
+        o["Loads"] <- loads
+        let bcs = JsonArray()
+        for bc in lc.BoundaryConditions do bcs.Add(bcToJson bc)
+        o["BoundaryConditions"] <- bcs
+        o
+
+    let private modelToJson (m: FEAModel) =
+        let root = JsonObject()
+        let nodes = JsonArray()
+        for KeyValue(_, n) in m.Nodes do nodes.Add(nodeToJson n)
+        root["Nodes"] <- nodes
+        let mats = JsonArray()
+        for KeyValue(_, mat) in m.Materials do mats.Add(materialToJson mat)
+        root["Materials"] <- mats
+        let elems = JsonArray()
+        for KeyValue(_, e) in m.Elements do elems.Add(elementToJson e)
+        root["Elements"] <- elems
+        let lcs = JsonArray()
+        for lc in m.LoadCases do lcs.Add(loadCaseToJson lc)
+        root["LoadCases"] <- lcs
+        root
+
+    // -----------------------------------------------------------------------
+    // JsonObject → Domain
+    // -----------------------------------------------------------------------
+
+    let private str   (o: JsonObject) (key: string) = o.[key].GetValue<string>()
+    let private int_  (o: JsonObject) (key: string) = o.[key].GetValue<int>()
+    let private flt   (o: JsonObject) (key: string) = o.[key].GetValue<float>()
+    let private bool_ (o: JsonObject) (key: string) = o.[key].GetValue<bool>()
+
+    let private nodeOfJson (o: JsonObject) : Node = {
+        Id               = NodeId (int_ o "Id")
+        Position         = { X = flt o "X"; Y = flt o "Y"; Z = flt o "Z" }
+        DegreesOfFreedom = int_ o "DegreesOfFreedom"
+    }
+
+    let private materialOfJson (o: JsonObject) : Material = {
+        Id               = MaterialId (int_ o "Id")
+        Name             = str o "Name"
+        YoungModulus     = flt o "YoungModulus"
+        PoissonRatio     = flt o "PoissonRatio"
+        Density          = flt o "Density"
+        CrossSectionArea =
+            if bool_ o "HasCrossSection" then Some (flt o "CrossSectionArea") else None
+    }
+
+    let private elementOfJson (o: JsonObject) : Element =
+        let nodeIds =
+            (o["NodeIds"] :?> JsonArray)
+            |> Seq.map (fun n -> NodeId (n.GetValue<int>()))
+            |> Seq.toList
+        let props =
+            (o["Properties"] :?> JsonObject)
+            |> Seq.map (fun kvp -> kvp.Key, kvp.Value.GetValue<float>())
+            |> Map.ofSeq
+        { Id         = ElementId (int_ o "Id")
+          Type       = elementTypeOfString (str o "Type")
+          NodeIds    = nodeIds
+          MaterialId = MaterialId (int_ o "MaterialId")
+          Properties = props }
+
+    let private loadOfJson (o: JsonObject) : Load = {
+        NodeId        = NodeId (int_ o "NodeId")
+        LocalDofIndex = int_ o "LocalDofIndex"
+        Value         = flt o "Value"
+    }
+
+    let private bcOfJson (o: JsonObject) : BoundaryCondition = {
+        NodeId        = NodeId (int_ o "NodeId")
+        LocalDofIndex = int_ o "LocalDofIndex"
+        Constraint    =
+            if str o "ConstraintType" = "Prescribed" then Prescribed (flt o "PrescribedValue")
+            else Fixed
+    }
+
+    let private loadCaseOfJson (o: JsonObject) : LoadCase = {
+        Id   = LoadCaseId (int_ o "Id")
+        Name = str o "Name"
+        Loads =
+            (o["Loads"] :?> JsonArray)
+            |> Seq.map (fun n -> loadOfJson (n :?> JsonObject))
+            |> Seq.toList
+        BoundaryConditions =
+            (o["BoundaryConditions"] :?> JsonArray)
+            |> Seq.map (fun n -> bcOfJson (n :?> JsonObject))
+            |> Seq.toList
+    }
+
+    let private modelOfJson (root: JsonObject) : FEAModel =
+        let addNodes m =
+            (root["Nodes"] :?> JsonArray)
+            |> Seq.fold (fun acc n -> FEAModel.addNode (nodeOfJson (n :?> JsonObject)) acc) m
+        let addMaterials m =
+            (root["Materials"] :?> JsonArray)
+            |> Seq.fold (fun acc n -> FEAModel.addMaterial (materialOfJson (n :?> JsonObject)) acc) m
+        let addElements m =
+            (root["Elements"] :?> JsonArray)
+            |> Seq.fold (fun acc n -> FEAModel.addElement (elementOfJson (n :?> JsonObject)) acc) m
+        let addLoadCases m =
+            (root["LoadCases"] :?> JsonArray)
+            |> Seq.fold (fun acc n -> FEAModel.addLoadCase (loadCaseOfJson (n :?> JsonObject)) acc) m
+        FEAModel.empty
+        |> addNodes
+        |> addMaterials
+        |> addElements
+        |> addLoadCases
+
+    // -----------------------------------------------------------------------
+    // Public API
+    // -----------------------------------------------------------------------
+
+    /// Serialise an FEAModel to a JSON file at <paramref name="path"/>.
+    let saveModel (path: string) (model: FEAModel) : Validation<unit> =
+        try
+            let json = (modelToJson model).ToJsonString(jsonOpts)
+            File.WriteAllText(path, json)
+            Ok ()
+        with ex ->
+            Error [ StorageError ex.Message ]
+
+    /// Deserialise an FEAModel from a JSON file at <paramref name="path"/>.
+    let loadModel (path: string) : Validation<FEAModel> =
+        try
+            if not (File.Exists path) then
+                Error [ StorageError (sprintf "Model file not found: %s" path) ]
+            else
+                let json = File.ReadAllText path
+                let root = JsonNode.Parse(json) :?> JsonObject
+                Ok (modelOfJson root)
+        with ex ->
+            Error [ StorageError ex.Message ]

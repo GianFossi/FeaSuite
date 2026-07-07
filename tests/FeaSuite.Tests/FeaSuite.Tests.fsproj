@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>FeaSuite.Tests</RootNamespace>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Helpers.fs" />
+    <Compile Include="ModelValidationTests.fs" />
+    <Compile Include="LinearSolverTests.fs" />
+    <Compile Include="PagedStorageTests.fs" />
+    <Compile Include="ROPFlowTests.fs" />
+    <Compile Include="SkylineMatrixTests.fs" />
+    <Compile Include="SessionWorkspaceTests.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="xunit"                  Version="2.9.0"  />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FeaSuite.Core\FeaSuite.Core.fsproj"       />
+    <ProjectReference Include="..\..\src\FeaSuite.Solvers\FeaSuite.Solvers.fsproj" />
+    <ProjectReference Include="..\..\src\FeaSuite.Storage\FeaSuite.Storage.fsproj" />
+    <ProjectReference Include="..\..\src\FeaSuite.Post\FeaSuite.Post.fsproj"       />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>FeaSuite.Storage</AssemblyName>
+    <RootNamespace>FeaSuite.Storage</RootNamespace>
+    <Nullable>enable</Nullable>
+    <Optimize>true</Optimize>
+    <Description>FeaSuite paged file-backed storage for large vectors and matrices</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="PagedVector.fs" />
+    <Compile Include="PagedMatrixStore.fs" />
+    <Compile Include="SolverOptions.fs" />
+    <Compile Include="ModelSerializer.fs" />
+    <Compile Include="SessionWorkspace.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FeaSuite.Core\FeaSuite.Core.fsproj" />
+  </ItemGroup>
+</Project>
