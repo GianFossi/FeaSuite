@@ -48,7 +48,7 @@ module ResultRecovery =
             (model  : FEAModel)
             : ElementResult1D list =
         [ for KeyValue(_, elem) in model.Elements do
-            if elem.Type = Bar1D then
+            if elem.Type = Beam Bar1D then
                 match elem.NodeIds with
                 | [ nidI; nidJ ] ->
                     match model.Materials.TryFind elem.MaterialId,

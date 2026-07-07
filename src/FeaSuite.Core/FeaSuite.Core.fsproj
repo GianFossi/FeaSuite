@@ -10,6 +10,12 @@
   <ItemGroup>
     <Compile Include="Geometry.fs" />
     <Compile Include="ROP.fs" />
+    <Compile Include="Elements/BeamElements.fs" />
+    <Compile Include="Elements/ShellElements.fs" />
+    <Compile Include="Elements/AxisymmetricElements.fs" />
+    <Compile Include="Elements/LinkElements.fs" />
+    <Compile Include="Elements/PipeElements.fs" />
+    <Compile Include="Elements/SpecialElements.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Interfaces.fs" />
     <Compile Include="Validation.fs" />

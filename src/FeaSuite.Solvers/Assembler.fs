@@ -57,7 +57,7 @@ module ElementStiffness =
     let computeKe (e: Element) (nodes: Map<NodeId, Node>) (mat: Material)
                   : Validation<float[,] * int[]> =
         match e.Type with
-        | Bar1D ->
+        | Beam Bar1D ->
             match e.NodeIds with
             | [ nidI; nidJ ] ->
                 match nodes.TryFind nidI, nodes.TryFind nidJ with
@@ -68,7 +68,7 @@ module ElementStiffness =
                 | _, None -> Validation.fail (NodeNotFound (NodeId.value nidJ))
             | _ -> Validation.fail (InvalidInput (sprintf "Bar1D element %d must have exactly 2 nodes." (ElementId.value e.Id)))
 
-        | Truss3D ->
+        | Beam Truss3D ->
             match e.NodeIds with
             | [ nidI; nidJ ] ->
                 match nodes.TryFind nidI, nodes.TryFind nidJ with
