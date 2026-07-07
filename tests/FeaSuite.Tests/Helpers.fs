@@ -39,7 +39,7 @@ let buildBar1DModel
     let n2 = { Id = NodeId 2; Position = Point3D.ofXY L   0.0; DegreesOfFreedom = 1 }
     let el = {
         Id         = ElementId 1
-        Type       = Bar1D
+        Type       = Beam Bar1D
         NodeIds    = [ NodeId 1; NodeId 2 ]
         MaterialId = MaterialId 1
         Properties = Map.empty

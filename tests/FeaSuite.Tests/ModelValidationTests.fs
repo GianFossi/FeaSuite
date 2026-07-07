@@ -27,7 +27,7 @@ let ``validate detects missing material reference`` () =
     let n2 = { Id = NodeId 2; Position = Point3D.ofXY 1.0 0.0; DegreesOfFreedom = 1 }
     let el = {
         Id         = ElementId 1
-        Type       = Bar1D
+        Type       = Beam Bar1D
         NodeIds    = [ NodeId 1; NodeId 2 ]
         MaterialId = MaterialId 99  // does not exist
         Properties = Map.empty
@@ -52,7 +52,7 @@ let ``validate detects missing node reference in element`` () =
     let n1 = { Id = NodeId 1; Position = Point3D.ofXY 0.0 0.0; DegreesOfFreedom = 1 }
     let el = {
         Id         = ElementId 1
-        Type       = Bar1D
+        Type       = Beam Bar1D
         NodeIds    = [ NodeId 1; NodeId 99 ]  // NodeId 99 missing
         MaterialId = MaterialId 1
         Properties = Map.empty
@@ -77,7 +77,7 @@ let ``validate detects invalid Young's modulus`` () =
     let n1 = { Id = NodeId 1; Position = Point3D.ofXY 0.0 0.0; DegreesOfFreedom = 1 }
     let n2 = { Id = NodeId 2; Position = Point3D.ofXY 1.0 0.0; DegreesOfFreedom = 1 }
     let el = {
-        Id = ElementId 1; Type = Bar1D; NodeIds = [NodeId 1; NodeId 2]
+        Id = ElementId 1; Type = Beam Bar1D; NodeIds = [NodeId 1; NodeId 2]
         MaterialId = MaterialId 1; Properties = Map.empty
     }
     let model =

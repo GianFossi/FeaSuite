@@ -38,30 +38,95 @@ type Material = {
 type Node = {
     Id                : NodeId
     Position          : Point3D
-    /// Active degrees of freedom per node (1 for Bar1D, 3 for Truss3D, 6 for Beam3D).
+    /// Active degrees of freedom per node (1 for Beam Bar1D, 3 for Beam Truss3D, 6 for Beam Beam3D).
     DegreesOfFreedom  : int
 }
 
 // --- Element type --------------------------------------------------------
 
-/// Supported element families.
+/// Top-level element family: wraps a group-specific sub-type.
 type ElementType =
-    | Bar1D    /// 1-D axial bar, 1 DOF/node
-    | Truss3D  /// 3-D truss, 3 DOFs/node
-    | Beam2D   /// 2-D Euler-Bernoulli beam, 3 DOFs/node (ux, uy, rz)
-    | Beam3D   /// 3-D beam, 6 DOFs/node
-    | Shell4   /// 4-node shell (reserved for future implementation)
-    | Solid8   /// 8-node hexahedral solid (reserved for future implementation)
+    | Beam         of BeamElement         /// 1-D bar, truss, or beam element
+    | Shell        of ShellElement        /// Shell element
+    | Axisymmetric of AxisymmetricElement /// Axisymmetric / harmonic-plane element
+    | Link         of LinkElement         /// Link element
+    | Pipe         of PipeElement         /// Pipe or elbow element
+    | Special      of SpecialElement      /// Solid, fluid, multi-physics, or other special element
 
 module ElementType =
     /// Number of DOFs per node for each element type.
     let dofsPerNode = function
-        | Bar1D   -> 1
-        | Truss3D -> 3
-        | Beam2D  -> 3
-        | Beam3D  -> 6
-        | Shell4  -> 6
-        | Solid8  -> 3
+        | Beam e ->
+            match e with
+            | Bar1D   -> 1   // UX
+            | Truss3D -> 3   // UX, UY, UZ
+            | Beam2D  -> 3   // UX, UY, ROTZ
+            | Beam3D  -> 6   // UX, UY, UZ, ROTX, ROTY, ROTZ
+        | Shell e ->
+            match e with
+            | Shell4  -> 6  // UX, UY, UZ, ROTX, ROTY, ROTZ
+            | Shell61 -> 4  // UX, UY, UZ, ROTZ
+        | Axisymmetric e ->
+            match e with
+            | Plane75  -> 1   // TEMP
+            | Plane78  -> 1   // TEMP
+            | Plane83  -> 3   // UX, UY, UZ
+            | Shell208 -> 3   // UX, UY, ROTZ
+            | Shell209 -> 3   // UX, UY, ROTZ
+        | Link e ->
+            match e with
+            | Link11  -> 3   // UX, UY, UZ
+            | Link31  -> 1   // TEMP
+            | Link33  -> 1   // TEMP
+            | Link34  -> 1   // TEMP
+            | Link68  -> 2   // TEMP, VOLT
+            | Link180 -> 3   // UX, UY, UZ
+            | Link228 -> 5   // UX, UY, UZ, TEMP, VOLT
+        | Pipe e ->
+            match e with
+            | Pipe288  -> 6  // UX, UY, UZ, ROTX, ROTY, ROTZ
+            | Pipe289  -> 6  // UX, UY, UZ, ROTX, ROTY, ROTZ
+            | Elbow290 -> 6  // UX, UY, UZ, ROTX, ROTY, ROTZ
+        | Special e ->
+            match e with
+            | Solid8   -> 3   // UX, UY, UZ
+            | Cpt212   -> 4   // UX, UY, PRES, TEMP
+            | Cpt213   -> 4   // UX, UY, PRES, TEMP
+            | Cpt215   -> 5   // UX, UY, UZ, PRES, TEMP
+            | Cpt216   -> 5   // UX, UY, UZ, PRES, TEMP
+            | Cpt217   -> 5   // UX, UY, UZ, PRES, TEMP
+            | Fluid29  -> 3   // UX, UY, PRES
+            | Fluid30  -> 5   // UX, UY, UZ, PRES, ENKE
+            | Fluid38  -> 3   // UX, UY, UZ
+            | Fluid116 -> 2   // PRES, TEMP
+            | Fluid129 -> 1   // PRES
+            | Fluid130 -> 1   // PRES
+            | Fluid136 -> 1   // PRES
+            | Fluid138 -> 1   // PRES
+            | Fluid139 -> 3   // UX, UY, UZ
+            | Fluid218 -> 4   // UX, UY, UZ, PRES
+            | Fluid220 -> 9   // UX, UY, UZ, PRES, ENKE, VX, VY, VZ, TEMP
+            | Fluid221 -> 9   // UX, UY, UZ, PRES, ENKE, VX, VY, VZ, TEMP
+            | Fluid243 -> 7   // UX, UY, PRES, ENKE, VX, VY, TEMP
+            | Fluid244 -> 7   // UX, UY, PRES, ENKE, VX, VY, TEMP
+            | Follw201 -> 6   // UX, UY, UZ, ROTX, ROTY, ROTZ
+            | Hsfld241 -> 4   // UX, UY, HDSP, PRES
+            | Hsfld242 -> 5   // UX, UY, UZ, HDSP, PRES
+            | Infin47  -> 2   // MAG, TEMP
+            | Infin110 -> 3   // AZ, VOLT, TEMP
+            | Infin111 -> 4   // MAG, AZ, VOLT, TEMP
+            | Infin257 -> 3   // UX, UY, UZ (3D); for 2D models, Node.DegreesOfFreedom governs the actual per-node count (2)
+            | Inter192 -> 2   // UX, UY
+            | Inter193 -> 2   // UX, UY
+            | Inter194 -> 3   // UX, UY, UZ
+            | Inter195 -> 3   // UX, UY, UZ
+            | Inter202 -> 2   // UX, UY
+            | Inter203 -> 2   // UX, UY
+            | Inter204 -> 3   // UX, UY, UZ
+            | Inter205 -> 3   // UX, UY, UZ
+            | Mass21   -> 6   // UX, UY, UZ, ROTX, ROTY, ROTZ
+            | Mass71   -> 1   // TEMP
+            | Mpc184   -> 6   // UX, UY, UZ, ROTX, ROTY, ROTZ
 
 // --- Element -------------------------------------------------------------
 
