@@ -11,8 +11,13 @@
     <Compile Include="DenseMatrix.fs" />
     <Compile Include="Assembler.fs" />
     <Compile Include="LinearSolver.fs" />
+    <Compile Include="SkylineMatrix.fs" />
+    <Compile Include="MathNetSolver.fs" />
     <Compile Include="NonlinearSolver.fs" />
     <Compile Include="Pipeline.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FeaSuite.Core\FeaSuite.Core.fsproj" />

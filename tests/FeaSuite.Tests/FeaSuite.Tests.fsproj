@@ -11,6 +11,8 @@
     <Compile Include="LinearSolverTests.fs" />
     <Compile Include="PagedStorageTests.fs" />
     <Compile Include="ROPFlowTests.fs" />
+    <Compile Include="SkylineMatrixTests.fs" />
+    <Compile Include="SessionWorkspaceTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />

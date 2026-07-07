@@ -10,6 +10,9 @@
   <ItemGroup>
     <Compile Include="PagedVector.fs" />
     <Compile Include="PagedMatrixStore.fs" />
+    <Compile Include="SolverOptions.fs" />
+    <Compile Include="ModelSerializer.fs" />
+    <Compile Include="SessionWorkspace.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FeaSuite.Core\FeaSuite.Core.fsproj" />

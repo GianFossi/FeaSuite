@@ -10,9 +10,11 @@
   <ItemGroup>
     <Compile Include="ResultTypes.fs" />
     <Compile Include="ResultRecovery.fs" />
+    <Compile Include="ResultSerializer.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FeaSuite.Core\FeaSuite.Core.fsproj" />
     <ProjectReference Include="..\FeaSuite.Solvers\FeaSuite.Solvers.fsproj" />
+    <ProjectReference Include="..\FeaSuite.Storage\FeaSuite.Storage.fsproj" />
   </ItemGroup>
 </Project>
