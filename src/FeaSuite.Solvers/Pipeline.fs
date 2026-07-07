@@ -12,7 +12,11 @@ type LinearSolverKind =
     /// Built-in Gaussian elimination on the dense K matrix (default).
     /// Best for small-to-medium models (up to ~5 000 DOFs).
     | Dense
-    /// Pure F# Conjugate Gradient with Jacobi preconditioner.
+    /// Skyline (profile) Cholesky direct sparse solver.
+    /// Requires a symmetric positive-definite system.
+    /// More memory-efficient than Dense for banded/sparse stiffness matrices.
+    | SparseDirect
+    /// Pure F# Conjugate Gradient with Jacobi preconditioner (PCG).
     /// Requires a symmetric positive-definite system; efficient for large
     /// sparse models when combined with SparseAssembler.
     | SparseCg of maxIterations: int * tolerance: float
@@ -69,6 +73,7 @@ module FeaPipeline =
     let private makeLinearSolver (kind: LinearSolverKind) : ILinearSolver =
         match kind with
         | Dense                          -> DenseLinearSolver()      :> ILinearSolver
+        | SparseDirect                   -> SkylineLinearSolver()    :> ILinearSolver
         | SparseCg (maxIter, tol)        -> CgSolver(maxIter, tol)      :> ILinearSolver
         | SparseBiCgStab (maxIter, tol)  -> BiCgStabSolver(maxIter, tol) :> ILinearSolver
 

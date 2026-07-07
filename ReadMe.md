@@ -17,6 +17,9 @@ It provides a complete mini-solver pipeline — from model definition to result 
 | Geometry adapter (compatible with GianFossi/Geometry) | ✅ v1.0 |
 | CG / BiCGSTAB sparse iterative solvers (large systems) | ✅ v1.1 |
 | Sparse CSR assembly backed by `PagedMatrixStore` | ✅ v1.1 |
+| Direct sparse solver (Skyline Cholesky) | ✅ v1.2 |
+| Iterative PCG solver (Jacobi-preconditioned CG) | ✅ v1.2 |
+| Modal eigensolver (natural frequencies + mode shapes) | ✅ v1.2 |
 | Beam / Shell / Solid elements | 🗺 Roadmap |
 
 ---
@@ -41,9 +44,11 @@ FeaSuite.slnx
 │   │   ├── LinearSolver.fs      DenseLinearSolver – Gaussian elimination with BCs
 │   │   ├── SkylineMatrix.fs     Skyline (profile) sparse matrix + Cholesky solver
 │   │   ├── MathNetSolver.fs     MathNet dense LU + BiCGSTAB solvers
-│   │   ├── IterativeSolvers.fs  CgSolver and BiCgStabSolver – pure F# iterative solvers
+│   │   ├── IterativeSolvers.fs  CgSolver (PCG) and BiCgStabSolver – pure F# iterative solvers
 │   │   ├── SparseAssembler.fs   SparseAssembler – PagedMatrixStore-backed CSR assembly
 │   │   ├── NonlinearSolver.fs   NewtonRaphsonSolver – incremental N-R with correction BCs
+│   │   ├── MassMatrix.fs        ElementMass + MassAssembler – lumped diagonal mass matrix
+│   │   ├── ModalSolver.fs       MathNetModalSolver – modal eigensolver (K·φ = ω²·M·φ)
 │   │   └── Pipeline.fs          FeaPipeline.run – end-to-end solve, solver selection
 │   │
 │   ├── FeaSuite.Storage/        Out-of-core paged storage
@@ -151,7 +156,21 @@ vec.Flush()
 // Only `pageSize` floats are in RAM at any time.
 ```
 
-### Iterative solvers (CG / BiCGSTAB)
+### Direct sparse solver (Skyline Cholesky)
+
+Use `LinearSolverKind = SparseDirect` to select the skyline (profile) Cholesky
+direct sparse solver.  It is more memory-efficient than the dense solver for
+banded or sparse stiffness matrices and requires a symmetric positive-definite
+system.
+
+```fsharp
+let sparseDirectInput = { input with LinearSolverKind = SparseDirect }
+match FeaPipeline.run sparseDirectInput with
+| Ok out  -> printfn "SparseDirect u2 = %.3e m" out.Displacements.[NodeId 2].[0]
+| Error e -> printfn "failed: %A" e
+```
+
+### Iterative solvers (PCG / BiCGSTAB)
 
 Use `LinearSolverKind` to select an iterative solver for large sparse systems.
 Both solvers use diagonal (Jacobi) preconditioning and work with any `IAssembledSystem`.
@@ -222,6 +241,43 @@ match asm.Assemble(model, loadCase) with
 matrix after assembly. For very large models, ensure sufficient RAM for the CSR
 representation of K. The temporary COO file is deleted after conversion.
 
+### Modal analysis (natural frequencies and mode shapes)
+
+`ModalPipeline.run` solves the generalised eigenvalue problem **K·φ = ω²·M·φ**
+to extract natural frequencies and mode shapes.  The load case supplies only the
+boundary conditions (rigid supports); no loads are required.
+
+```fsharp
+open FeaSuite.Solvers
+
+// Reuse the same model; only BCs matter for modal analysis.
+let modalInput = {
+    ModalSolveInput.defaults with
+        Model         = model
+        LoadCaseIndex = 0           // load case that carries the BCs
+        Config        = { NumberOfModes = 10 }
+}
+
+match ModalPipeline.run modalInput with
+| Error e -> printfn "Modal failed: %A" e
+| Ok out  ->
+    for m in out.Modes do
+        printfn "Mode %d:  f = %.2f Hz  (ω = %.2f rad/s)" m.Index m.NaturalFrequency m.AngularFrequency
+```
+
+Each `ModalMode` carries:
+
+| Field | Description |
+|---|---|
+| `Index` | 1-based mode number, sorted by ascending frequency |
+| `AngularFrequency` | ω_i [rad/s] = √λ_i |
+| `NaturalFrequency` | f_i [Hz] = ω_i / (2π) |
+| `ModeShape` | Full displacement vector (constrained DOFs = 0) |
+
+The solver uses a **lumped (diagonal) mass matrix** assembled by `MassAssembler`
+and a dense symmetric EVD backed by **MathNet.Numerics** (MKL-accelerated when
+available).  It is suitable for models up to a few thousand free DOFs.
+
 ---
 
 ## Roadmap
@@ -230,6 +286,8 @@ representation of K. The temporary COO file is deleted after conversion.
 - [x] **Truss3D pipeline test** (full 3-D truss with multiple load cases)
 - [x] **CG / BiCGSTAB sparse iterative solver** for large systems
 - [x] **Sparse CSR matrix assembly** backed by `PagedMatrixStore`
+- [x] **Direct sparse solver** (Skyline Cholesky, `SparseDirect`)
+- [x] **Modal eigensolver** (natural frequencies + mode shapes via EVD)
 
 ### Medium-term
 - [ ] **Beam2D element** (Euler-Bernoulli, 3 DOFs/node: ux, uy, rz)
@@ -240,7 +298,7 @@ representation of K. The temporary COO file is deleted after conversion.
 ### Long-term
 - [ ] **Shell4 element** (MITC4 formulation)
 - [ ] **Solid8 element** (8-node hexahedral, reduced integration)
-- [ ] **Dynamic analysis** (modal, time-history integration)
+- [ ] **Dynamic time-history integration** (Newmark-β, HHT-α)
 - [ ] **Parallel assembly** using .NET `Parallel.ForEach`
 - [ ] **NuGet package** publishing
 

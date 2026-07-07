@@ -17,6 +17,8 @@
     <Compile Include="IterativeSolvers.fs" />
     <Compile Include="SparseAssembler.fs" />
     <Compile Include="NonlinearSolver.fs" />
+    <Compile Include="MassMatrix.fs" />
+    <Compile Include="ModalSolver.fs" />
     <Compile Include="Pipeline.fs" />
   </ItemGroup>
   <ItemGroup>
