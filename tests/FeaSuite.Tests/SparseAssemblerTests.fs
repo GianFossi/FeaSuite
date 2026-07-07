@@ -216,7 +216,7 @@ let ``pipeline: sparse assembler matches dense assembler on Truss3D`` () =
     let n4 = { Id = NodeId 4; Position = { X = 0.0; Y = 0.0; Z = 1.0 }; DegreesOfFreedom = 3 }
 
     let mkBar eid i j =
-        { Id = ElementId eid; Type = Truss3D
+        { Id = ElementId eid; Type = Beam Truss3D
           NodeIds = [ NodeId i; NodeId j ]; MaterialId = MaterialId 1
           Properties = Map.empty }
 

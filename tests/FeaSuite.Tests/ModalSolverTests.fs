@@ -44,7 +44,7 @@ let private buildBar1DModalModel (E: float) (rho: float) (A: float) (L: float)
     }
     let n1 = { Id = NodeId 1; Position = Point3D.ofXY 0.0 0.0; DegreesOfFreedom = 1 }
     let n2 = { Id = NodeId 2; Position = Point3D.ofXY L   0.0; DegreesOfFreedom = 1 }
-    let el = { Id = ElementId 1; Type = Bar1D; NodeIds = [ NodeId 1; NodeId 2 ]
+    let el = { Id = ElementId 1; Type = Beam Bar1D; NodeIds = [ NodeId 1; NodeId 2 ]
                MaterialId = MaterialId 1; Properties = Map.empty }
     // Load case only supplies the BC; no loads needed for modal analysis.
     let bc = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
@@ -141,9 +141,9 @@ let ``ModalPipeline: modes are sorted by ascending frequency`` () =
     let n1  = { Id = NodeId 1; Position = Point3D.ofXY 0.0 0.0; DegreesOfFreedom = 1 }
     let n2  = { Id = NodeId 2; Position = Point3D.ofXY L   0.0; DegreesOfFreedom = 1 }
     let n3  = { Id = NodeId 3; Position = Point3D.ofXY (2.0*L) 0.0; DegreesOfFreedom = 1 }
-    let e1  = { Id = ElementId 1; Type = Bar1D; NodeIds = [ NodeId 1; NodeId 2 ]
+    let e1  = { Id = ElementId 1; Type = Beam Bar1D; NodeIds = [ NodeId 1; NodeId 2 ]
                 MaterialId = MaterialId 1; Properties = Map.empty }
-    let e2  = { Id = ElementId 2; Type = Bar1D; NodeIds = [ NodeId 2; NodeId 3 ]
+    let e2  = { Id = ElementId 2; Type = Beam Bar1D; NodeIds = [ NodeId 2; NodeId 3 ]
                 MaterialId = MaterialId 1; Properties = Map.empty }
     let bc  = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
     let lc  = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ] }
@@ -172,9 +172,9 @@ let ``ModalPipeline: NumberOfModes limits modes returned`` () =
     let n1  = { Id = NodeId 1; Position = Point3D.ofXY 0.0 0.0; DegreesOfFreedom = 1 }
     let n2  = { Id = NodeId 2; Position = Point3D.ofXY 0.5 0.0; DegreesOfFreedom = 1 }
     let n3  = { Id = NodeId 3; Position = Point3D.ofXY 1.0 0.0; DegreesOfFreedom = 1 }
-    let e1  = { Id = ElementId 1; Type = Bar1D; NodeIds = [ NodeId 1; NodeId 2 ]
+    let e1  = { Id = ElementId 1; Type = Beam Bar1D; NodeIds = [ NodeId 1; NodeId 2 ]
                 MaterialId = MaterialId 1; Properties = Map.empty }
-    let e2  = { Id = ElementId 2; Type = Bar1D; NodeIds = [ NodeId 2; NodeId 3 ]
+    let e2  = { Id = ElementId 2; Type = Beam Bar1D; NodeIds = [ NodeId 2; NodeId 3 ]
                 MaterialId = MaterialId 1; Properties = Map.empty }
     let bc  = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
     let lc  = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ] }
