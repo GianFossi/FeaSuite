@@ -116,11 +116,14 @@ type SparseAssembler(?tempPath: string, ?pageBufferSize: int) =
                     Error assemblyErrors
                 else
 
-                // --- Assemble F ---
+                // --- Assemble F (nodal loads) ---
                 for load in loadCase.Loads do
                     match dofMap.TryFind (load.NodeId, load.LocalDofIndex) with
                     | Some gdof -> F.[gdof] <- F.[gdof] + load.Value
                     | None      -> ()
+
+                // --- Assemble F (body forces from acceleration / gravity) ---
+                ElementBodyForce.assembleBodyForces model loadCase dofMap F
 
                 // Phase 2: read COO entries and convert to CSR.
                 // File stream is closed so OpenReadOnly can access the file.

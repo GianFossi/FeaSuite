@@ -111,37 +111,69 @@ module ModelSerializer =
         o
 
     let private elementPropsToJson (p: ElementProperties) =
-        let o = JsonObject()
+        let o   = JsonObject()
+        let opt (key: string) (v: float option) =
+            match v with Some x -> o[key] <- JsonValue.Create(x) | None -> ()
         match p with
         | NoProperties ->
             o["case"] <- JsonValue.Create("NoProperties")
         | BarSection s ->
             o["case"] <- JsonValue.Create("BarSection")
             o["Area"] <- JsonValue.Create(s.Area)
+            opt "AddedMassPerLength" s.AddedMassPerLength
         | Beam2DSection s ->
             o["case"] <- JsonValue.Create("Beam2DSection")
             o["Area"] <- JsonValue.Create(s.Area)
             o["Iz"]   <- JsonValue.Create(s.Iz)
+            opt "AddedMassPerLength" s.AddedMassPerLength
         | Beam3DSection s ->
             o["case"] <- JsonValue.Create("Beam3DSection")
             o["Area"] <- JsonValue.Create(s.Area)
             o["Iz"]   <- JsonValue.Create(s.Iz)
             o["Iy"]   <- JsonValue.Create(s.Iy)
             o["J"]    <- JsonValue.Create(s.J)
+            opt "AddedMassPerLength" s.AddedMassPerLength
         | ShellSection s ->
             o["case"]      <- JsonValue.Create("ShellSection")
             o["Thickness"] <- JsonValue.Create(s.Thickness)
+        | StructuralMassSection s ->
+            o["case"] <- JsonValue.Create("StructuralMassSection")
+            o["Mx"]  <- JsonValue.Create(s.Mx);  o["My"]  <- JsonValue.Create(s.My);  o["Mz"]  <- JsonValue.Create(s.Mz)
+            o["Ixx"] <- JsonValue.Create(s.Ixx); o["Iyy"] <- JsonValue.Create(s.Iyy); o["Izz"] <- JsonValue.Create(s.Izz)
+        | ThermalMassSection s ->
+            o["case"]        <- JsonValue.Create("ThermalMassSection")
+            o["Capacitance"] <- JsonValue.Create(s.Capacitance)
+        | LinkSection s ->
+            o["case"] <- JsonValue.Create("LinkSection")
+            opt "Area"            s.Area
+            opt "SpringStiffness" s.SpringStiffness
+            opt "FilmCoefficient" s.FilmCoefficient
         o
 
     let private elementPropsOfJson (o: JsonObject) : ElementProperties =
-        let f key = o.Item(key : string).GetValue<float>()
+        let f   key = o.Item(key : string).GetValue<float>()
+        let opt key =
+            let node = o.Item(key : string)
+            if node = null then None else Some (node.GetValue<float>())
         match o.Item("case" : string).GetValue<string>() with
-        | "BarSection"     -> BarSection    { Area = f "Area" }
-        | "Beam2DSection"  -> Beam2DSection { Area = f "Area"; Iz = f "Iz" }
-        | "Beam3DSection"  -> Beam3DSection { Area = f "Area"; Iz = f "Iz"
-                                              Iy   = f "Iy";   J  = f "J" }
-        | "ShellSection"   -> ShellSection  { Thickness = f "Thickness" }
-        | _                -> NoProperties
+        | "BarSection"     ->
+            BarSection    { Area = f "Area"; AddedMassPerLength = opt "AddedMassPerLength" }
+        | "Beam2DSection"  ->
+            Beam2DSection { Area = f "Area"; Iz = f "Iz"; AddedMassPerLength = opt "AddedMassPerLength" }
+        | "Beam3DSection"  ->
+            Beam3DSection { Area = f "Area"; Iz = f "Iz"; Iy = f "Iy"; J = f "J"
+                            AddedMassPerLength = opt "AddedMassPerLength" }
+        | "ShellSection"   ->
+            ShellSection  { Thickness = f "Thickness" }
+        | "StructuralMassSection" ->
+            StructuralMassSection { Mx = f "Mx"; My = f "My"; Mz = f "Mz"
+                                    Ixx = f "Ixx"; Iyy = f "Iyy"; Izz = f "Izz" }
+        | "ThermalMassSection" ->
+            ThermalMassSection { Capacitance = f "Capacitance" }
+        | "LinkSection" ->
+            LinkSection { Area = opt "Area"; SpringStiffness = opt "SpringStiffness"
+                          FilmCoefficient = opt "FilmCoefficient" }
+        | _ -> NoProperties
 
     let private elementToJson (e: Element) =
         let o = JsonObject()
@@ -171,6 +203,13 @@ module ModelSerializer =
         o["PrescribedValue"] <- JsonValue.Create(pval)
         o
 
+    let private accelToJson (a: AccelerationLoad) =
+        let o = JsonObject()
+        o["Ax"] <- JsonValue.Create(a.Ax)
+        o["Ay"] <- JsonValue.Create(a.Ay)
+        o["Az"] <- JsonValue.Create(a.Az)
+        o
+
     let private loadCaseToJson (lc: LoadCase) =
         let o = JsonObject()
         o["Id"]   <- JsonValue.Create(LoadCaseId.value lc.Id)
@@ -181,6 +220,9 @@ module ModelSerializer =
         let bcs = JsonArray()
         for bc in lc.BoundaryConditions do bcs.Add(bcToJson bc)
         o["BoundaryConditions"] <- bcs
+        let accels = JsonArray()
+        for a in lc.AccelerationLoads do accels.Add(accelToJson a)
+        o["AccelerationLoads"] <- accels
         o
 
     let private modelToJson (m: FEAModel) =
@@ -241,6 +283,9 @@ module ModelSerializer =
         Value         = flt o "Value"
     }
 
+    let private accelOfJson (o: JsonObject) : AccelerationLoad =
+        { Ax = flt o "Ax"; Ay = flt o "Ay"; Az = flt o "Az" }
+
     let private bcOfJson (o: JsonObject) : BoundaryCondition = {
         NodeId        = NodeId (int_ o "NodeId")
         LocalDofIndex = int_ o "LocalDofIndex"
@@ -260,6 +305,13 @@ module ModelSerializer =
             (o["BoundaryConditions"] :?> JsonArray)
             |> Seq.map (fun n -> bcOfJson (n :?> JsonObject))
             |> Seq.toList
+        AccelerationLoads =
+            match o["AccelerationLoads"] with
+            | null -> []
+            | node ->
+                (node :?> JsonArray)
+                |> Seq.map (fun n -> accelOfJson (n :?> JsonObject))
+                |> Seq.toList
     }
 
     let private modelOfJson (root: JsonObject) : FEAModel =

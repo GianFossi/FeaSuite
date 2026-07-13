@@ -165,6 +165,23 @@ type Load = {
     Value         : float  /// force [N] or moment [N·m]
 }
 
+// --- Acceleration load ---------------------------------------------------
+
+/// Body acceleration field applied to all elements (gravity, seismic base acceleration, etc.).
+/// Components are in the global coordinate system [m/s²].
+/// Positive Z means upward; gravity is typically { Ax=0; Ay=0; Az=-9.80665 }.
+type AccelerationLoad = {
+    Ax : float
+    Ay : float
+    Az : float
+}
+
+module AccelerationLoad =
+    /// Standard gravitational acceleration acting in the −Z direction (g = 9.80665 m/s²).
+    let gravity : AccelerationLoad = { Ax = 0.0; Ay = 0.0; Az = -9.80665 }
+    /// Gravitational acceleration along −Z with a custom magnitude.
+    let gravityAlongZ (g: float) : AccelerationLoad = { Ax = 0.0; Ay = 0.0; Az = -g }
+
 // --- Load case -----------------------------------------------------------
 
 type LoadCase = {
@@ -172,6 +189,7 @@ type LoadCase = {
     Name                : string
     Loads               : Load list
     BoundaryConditions  : BoundaryCondition list
+    AccelerationLoads   : AccelerationLoad list
 }
 
 // --- DOF numbering map ---------------------------------------------------

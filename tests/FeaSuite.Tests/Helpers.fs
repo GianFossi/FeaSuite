@@ -46,7 +46,7 @@ let buildBar1DModel
     }
     let bc = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
     let ld = { NodeId = NodeId 2; LocalDofIndex = 0; Value = F }
-    let lc = { Id = LoadCaseId 1; Name = "LC1"; Loads = [ ld ]; BoundaryConditions = [ bc ] }
+    let lc = { Id = LoadCaseId 1; Name = "LC1"; Loads = [ ld ]; BoundaryConditions = [ bc ]; AccelerationLoads = [] }
     let model =
         FEAModel.empty
         |> FEAModel.addMaterial mat

@@ -232,7 +232,7 @@ let ``pipeline: sparse assembler matches dense assembler on Truss3D`` () =
         [ { NodeId = NodeId 4; LocalDofIndex = 0; Value = 3000.0 }
           { NodeId = NodeId 4; LocalDofIndex = 1; Value = -2000.0 }
           { NodeId = NodeId 4; LocalDofIndex = 2; Value = -8000.0 } ]
-    let lc = { Id = LoadCaseId 1; Name = "LC1"; Loads = loads; BoundaryConditions = baseBcs }
+    let lc = { Id = LoadCaseId 1; Name = "LC1"; Loads = loads; BoundaryConditions = baseBcs; AccelerationLoads = [] }
 
     let model =
         FEAModel.empty

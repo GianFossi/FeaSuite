@@ -68,7 +68,8 @@ let private buildTruss3DModelWithCases (cases: TrussCase list) : FEAModel =
             { Id = LoadCaseId (idx + 1)
               Name = c.Name
               Loads = loads
-              BoundaryConditions = baseBcs })
+              BoundaryConditions = baseBcs
+              AccelerationLoads = [] })
 
     FEAModel.empty
     |> FEAModel.addMaterial mat

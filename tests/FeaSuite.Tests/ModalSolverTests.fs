@@ -48,7 +48,7 @@ let private buildBar1DModalModel (E: float) (rho: float) (A: float) (L: float)
                MaterialId = MaterialId 1; Properties = NoProperties }
     // Load case only supplies the BC; no loads needed for modal analysis.
     let bc = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
-    let lc = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ] }
+    let lc = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ]; AccelerationLoads = [] }
     let model =
         FEAModel.empty
         |> FEAModel.addMaterial mat
@@ -146,7 +146,7 @@ let ``ModalPipeline: modes are sorted by ascending frequency`` () =
     let e2  = { Id = ElementId 2; Type = Beam Bar1D; NodeIds = [ NodeId 2; NodeId 3 ]
                 MaterialId = MaterialId 1; Properties = NoProperties }
     let bc  = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
-    let lc  = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ] }
+    let lc  = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ]; AccelerationLoads = [] }
     let model =
         FEAModel.empty
         |> FEAModel.addMaterial mat
@@ -177,7 +177,7 @@ let ``ModalPipeline: NumberOfModes limits modes returned`` () =
     let e2  = { Id = ElementId 2; Type = Beam Bar1D; NodeIds = [ NodeId 2; NodeId 3 ]
                 MaterialId = MaterialId 1; Properties = NoProperties }
     let bc  = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
-    let lc  = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ] }
+    let lc  = { Id = LoadCaseId 1; Name = "Modal"; Loads = []; BoundaryConditions = [ bc ]; AccelerationLoads = [] }
     let model =
         FEAModel.empty |> FEAModel.addMaterial mat
         |> FEAModel.addNode n1 |> FEAModel.addNode n2 |> FEAModel.addNode n3

@@ -224,6 +224,117 @@ module ElementStiffness =
             Validation.fail (NotImplemented (sprintf "Element type %A is not yet implemented." t))
 
 // ---------------------------------------------------------------------------
+// Body-force equivalent nodal loads (acceleration / gravity)
+// ---------------------------------------------------------------------------
+
+module ElementBodyForce =
+
+    /// Returns (globalDofIndex, force) pairs to add to F for a single element
+    /// subjected to the given global acceleration [ax, ay, az] (m/s²).
+    /// Uses the lumped mass approach: half the element mass is attributed to each end node.
+    let computeBodyForce
+            (e      : Element)
+            (nodes  : Map<NodeId, Node>)
+            (mat    : Material)
+            (dofMap : DofMap)
+            (ax     : float)
+            (ay     : float)
+            (az     : float)
+            : (int * float) list =
+
+        let tryAdd nodeId localDof force acc =
+            match dofMap.TryFind (nodeId, localDof) with
+            | Some gdof when force <> 0.0 -> (gdof, force) :: acc
+            | _                           -> acc
+
+        match e.Type, e.NodeIds with
+        | Beam Bar1D, [nidI; nidJ] ->
+            match nodes.TryFind nidI, nodes.TryFind nidJ with
+            | Some nI, Some nJ ->
+                let L  = Point3D.distanceTo nI.Position nJ.Position
+                let A  = match e.Properties with BarSection p -> p.Area | _ -> mat.CrossSectionArea |> Option.defaultValue 1.0
+                let hm = mat.Density * A * L / 2.0  // half-element lumped mass
+                []
+                |> tryAdd nidI 0 (hm * ax)
+                |> tryAdd nidJ 0 (hm * ax)
+            | _ -> []
+
+        | Beam Truss3D, [nidI; nidJ] ->
+            match nodes.TryFind nidI, nodes.TryFind nidJ with
+            | Some nI, Some nJ ->
+                let v  = Point3D.vectorTo nI.Position nJ.Position
+                let L  = Vector3D.magnitude v
+                let A  = match e.Properties with BarSection p -> p.Area | _ -> mat.CrossSectionArea |> Option.defaultValue 1.0
+                let hm = mat.Density * A * L / 2.0
+                []
+                |> tryAdd nidI 0 (hm * ax) |> tryAdd nidI 1 (hm * ay) |> tryAdd nidI 2 (hm * az)
+                |> tryAdd nidJ 0 (hm * ax) |> tryAdd nidJ 1 (hm * ay) |> tryAdd nidJ 2 (hm * az)
+            | _ -> []
+
+        | Beam Beam2D, [nidI; nidJ] ->
+            match nodes.TryFind nidI, nodes.TryFind nidJ with
+            | Some nI, Some nJ ->
+                let v       = Point3D.vectorTo nI.Position nJ.Position
+                let L       = Vector3D.magnitude v
+                let linMass =
+                    match e.Properties with
+                    | Beam2DSection p -> mat.Density * p.Area + (p.AddedMassPerLength |> Option.defaultValue 0.0)
+                    | _               -> mat.Density * (mat.CrossSectionArea |> Option.defaultValue 1.0)
+                let hm = linMass * L / 2.0
+                // DOF 2 is ROTZ — no translational body force on rotational DOF
+                []
+                |> tryAdd nidI 0 (hm * ax) |> tryAdd nidI 1 (hm * ay)
+                |> tryAdd nidJ 0 (hm * ax) |> tryAdd nidJ 1 (hm * ay)
+            | _ -> []
+
+        | Beam Beam3D, [nidI; nidJ] ->
+            match nodes.TryFind nidI, nodes.TryFind nidJ with
+            | Some nI, Some nJ ->
+                let v       = Point3D.vectorTo nI.Position nJ.Position
+                let L       = Vector3D.magnitude v
+                let linMass =
+                    match e.Properties with
+                    | Beam3DSection p -> mat.Density * p.Area + (p.AddedMassPerLength |> Option.defaultValue 0.0)
+                    | _               -> mat.Density * (mat.CrossSectionArea |> Option.defaultValue 1.0)
+                let hm = linMass * L / 2.0
+                // DOFs 3,4,5 are rotational — no body moment contribution here
+                []
+                |> tryAdd nidI 0 (hm * ax) |> tryAdd nidI 1 (hm * ay) |> tryAdd nidI 2 (hm * az)
+                |> tryAdd nidJ 0 (hm * ax) |> tryAdd nidJ 1 (hm * ay) |> tryAdd nidJ 2 (hm * az)
+            | _ -> []
+
+        | Special Mass21, [nid] ->
+            match e.Properties with
+            | StructuralMassSection p ->
+                []
+                |> tryAdd nid 0 (p.Mx * ax)
+                |> tryAdd nid 1 (p.My * ay)
+                |> tryAdd nid 2 (p.Mz * az)
+            | _ -> []
+
+        | _ -> []
+
+    /// Accumulate body-force contributions from all AccelerationLoads in the load case.
+    let assembleBodyForces
+            (model     : FEAModel)
+            (loadCase  : LoadCase)
+            (dofMap    : DofMap)
+            (F         : float[])
+            : unit =
+        if List.isEmpty loadCase.AccelerationLoads then ()
+        else
+        let totalAx = loadCase.AccelerationLoads |> List.sumBy (fun a -> a.Ax)
+        let totalAy = loadCase.AccelerationLoads |> List.sumBy (fun a -> a.Ay)
+        let totalAz = loadCase.AccelerationLoads |> List.sumBy (fun a -> a.Az)
+        for KeyValue(_, elem) in model.Elements do
+            match model.Materials.TryFind elem.MaterialId with
+            | None     -> ()
+            | Some mat ->
+                let contributions = computeBodyForce elem model.Nodes mat dofMap totalAx totalAy totalAz
+                for (gdof, force) in contributions do
+                    F.[gdof] <- F.[gdof] + force
+
+// ---------------------------------------------------------------------------
 // Main Assembler
 // ---------------------------------------------------------------------------
 
@@ -258,12 +369,13 @@ type DenseAssembler() =
                 Error assemblyErrors
             else
 
-            // --- Assemble F ---
+            // --- Assemble F (nodal loads) ---
             for load in loadCase.Loads do
                 match dofMap.TryFind (load.NodeId, load.LocalDofIndex) with
                 | Some gdof -> F.[gdof] <- F.[gdof] + load.Value
-                | None      ->
-                    // Node or DOF not mapped – skip (BC will pin it anyway)
-                    ()
+                | None      -> ()
+
+            // --- Assemble F (body forces from acceleration / gravity) ---
+            ElementBodyForce.assembleBodyForces model loadCase dofMap F
 
             Ok (DenseAssembledSystem(totalDofs, K, F) :> IAssembledSystem)
