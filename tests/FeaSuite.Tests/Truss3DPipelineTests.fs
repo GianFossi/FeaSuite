@@ -39,7 +39,7 @@ let private buildTruss3DModelWithCases (cases: TrussCase list) : FEAModel =
         Type       = Beam Truss3D
         NodeIds    = [ NodeId i; NodeId j ]
         MaterialId = MaterialId 1
-        Properties = Map.empty
+        Properties = NoProperties
     }
 
     let elements = [

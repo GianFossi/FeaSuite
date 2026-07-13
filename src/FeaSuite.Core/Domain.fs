@@ -137,8 +137,8 @@ type Element = {
     /// Ordered list of node IDs forming this element.
     NodeIds    : NodeId list
     MaterialId : MaterialId
-    /// Arbitrary key-value properties (e.g. "CrossSectionArea", "Thickness").
-    Properties : Map<string, float>
+    /// Typed section / geometry properties specific to this element's family.
+    Properties : ElementProperties
 }
 
 // --- Boundary condition --------------------------------------------------

@@ -110,6 +110,39 @@ module ModelSerializer =
         o["CrossSectionArea"] <- JsonValue.Create(m.CrossSectionArea |> Option.defaultValue 0.0)
         o
 
+    let private elementPropsToJson (p: ElementProperties) =
+        let o = JsonObject()
+        match p with
+        | NoProperties ->
+            o["case"] <- JsonValue.Create("NoProperties")
+        | BarSection s ->
+            o["case"] <- JsonValue.Create("BarSection")
+            o["Area"] <- JsonValue.Create(s.Area)
+        | Beam2DSection s ->
+            o["case"] <- JsonValue.Create("Beam2DSection")
+            o["Area"] <- JsonValue.Create(s.Area)
+            o["Iz"]   <- JsonValue.Create(s.Iz)
+        | Beam3DSection s ->
+            o["case"] <- JsonValue.Create("Beam3DSection")
+            o["Area"] <- JsonValue.Create(s.Area)
+            o["Iz"]   <- JsonValue.Create(s.Iz)
+            o["Iy"]   <- JsonValue.Create(s.Iy)
+            o["J"]    <- JsonValue.Create(s.J)
+        | ShellSection s ->
+            o["case"]      <- JsonValue.Create("ShellSection")
+            o["Thickness"] <- JsonValue.Create(s.Thickness)
+        o
+
+    let private elementPropsOfJson (o: JsonObject) : ElementProperties =
+        let f key = o.Item(key : string).GetValue<float>()
+        match o.Item("case" : string).GetValue<string>() with
+        | "BarSection"     -> BarSection    { Area = f "Area" }
+        | "Beam2DSection"  -> Beam2DSection { Area = f "Area"; Iz = f "Iz" }
+        | "Beam3DSection"  -> Beam3DSection { Area = f "Area"; Iz = f "Iz"
+                                              Iy   = f "Iy";   J  = f "J" }
+        | "ShellSection"   -> ShellSection  { Thickness = f "Thickness" }
+        | _                -> NoProperties
+
     let private elementToJson (e: Element) =
         let o = JsonObject()
         o["Id"]         <- JsonValue.Create(ElementId.value e.Id)
@@ -117,10 +150,8 @@ module ModelSerializer =
         o["MaterialId"] <- JsonValue.Create(MaterialId.value e.MaterialId)
         let nids = JsonArray()
         for nid in e.NodeIds do nids.Add(JsonValue.Create(NodeId.value nid))
-        o["NodeIds"] <- nids
-        let props = JsonObject()
-        for KeyValue(k, v) in e.Properties do props.[k] <- JsonValue.Create(v)
-        o["Properties"] <- props
+        o["NodeIds"]    <- nids
+        o["Properties"] <- elementPropsToJson e.Properties
         o
 
     let private loadToJson (l: Load) =
@@ -198,15 +229,11 @@ module ModelSerializer =
             (o["NodeIds"] :?> JsonArray)
             |> Seq.map (fun n -> NodeId (n.GetValue<int>()))
             |> Seq.toList
-        let props =
-            (o["Properties"] :?> JsonObject)
-            |> Seq.map (fun kvp -> kvp.Key, kvp.Value.GetValue<float>())
-            |> Map.ofSeq
         { Id         = ElementId (int_ o "Id")
           Type       = elementTypeOfString (str o "Type")
           NodeIds    = nodeIds
           MaterialId = MaterialId (int_ o "MaterialId")
-          Properties = props }
+          Properties = elementPropsOfJson (o["Properties"] :?> JsonObject) }
 
     let private loadOfJson (o: JsonObject) : Load = {
         NodeId        = NodeId (int_ o "NodeId")

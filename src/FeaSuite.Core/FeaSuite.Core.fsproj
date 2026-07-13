@@ -16,6 +16,7 @@
     <Compile Include="Elements/LinkElements.fs" />
     <Compile Include="Elements/PipeElements.fs" />
     <Compile Include="Elements/SpecialElements.fs" />
+    <Compile Include="Elements/ElementProperties.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Interfaces.fs" />
     <Compile Include="Validation.fs" />

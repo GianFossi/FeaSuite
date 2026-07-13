@@ -42,7 +42,7 @@ let buildBar1DModel
         Type       = Beam Bar1D
         NodeIds    = [ NodeId 1; NodeId 2 ]
         MaterialId = MaterialId 1
-        Properties = Map.empty
+        Properties = NoProperties
     }
     let bc = { NodeId = NodeId 1; LocalDofIndex = 0; Constraint = Fixed }
     let ld = { NodeId = NodeId 2; LocalDofIndex = 0; Value = F }
