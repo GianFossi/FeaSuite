@@ -36,7 +36,7 @@ let private buildTruss3DModelWithCases (cases: TrussCase list) : FEAModel =
 
     let mkBar eid i j = {
         Id         = ElementId eid
-        Type       = Truss3D
+        Type       = Beam Truss3D
         NodeIds    = [ NodeId i; NodeId j ]
         MaterialId = MaterialId 1
         Properties = Map.empty
