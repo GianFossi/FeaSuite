@@ -317,5 +317,5 @@ Requires .NET 8 SDK or later.
 
 ## License
 
-MIT
+PolyForm Noncommercial License 1.0.0
 
